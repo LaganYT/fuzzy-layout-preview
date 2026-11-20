@@ -1,0 +1,324 @@
+<div class="page">
+<div class="sub-nav-bar">
+    <label for="planters_mode" class="sub-nav-label">Planter mode</label>
+    <input type="range" min="0" max="2" class="slider" oninput="changePlanterMode()" id = "planters_mode">
+    <div class="planter-mode-labels">
+        <span>Off</span>
+        <span>Manual</span>
+        <span>Auto</span>
+    </div>
+    <button id="export-planters-button" class="import-export-button sub-nav-action">Export Settings</button>
+    <button id="import-planters-button" class="import-export-button">Import Settings</button>
+</div>
+<div class="sub-tab-panel active">
+    <div id = "planters-off" class="planter-tab tab-main" style="display: none;">
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 2rem; align-items: center; justify-content: center; text-align: center;">
+            <h2 style="margin-bottom: 1rem;">Planters are Off</h2>
+            <p style="font-weight:500; font-size:1.1rem; color: #adb4bc; max-width: 80%;">The macro will not harvest or plant any planters.<br>Move the planter mode slider to <b>Manual</b> or <b>Auto</b> to enable planter management.</p>
+            <div style="margin-top: 2rem; opacity: 0.5;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-pause-circle"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id = "planters-manual" class="planter-tab tab-main" style="display: none;">
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2 id="manual-planters">Manual Planters</h2>
+            <p style="font-weight:500; font-size:1rem;"></p>
+            <div class="seperator"></div>
+            
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%;">
+                <div style="width: 70%;">
+                    <label>Harvest Every X Hours</label>
+                    <p>How often the macro should collect each cycle of planters. 2-3 is recommended</p>
+                </div>
+                <input type="text" id="manual_planters_collect_every" style="width: 8rem; margin-top: 0.6rem;" class="poppins-regular textbox" data-input-type="float" data-input-limit="4" onkeypress="return textboxRestriction(this, event)" onchange="saveSetting(this, 'profile')">
+            </form> 
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Harvest When Full</label>
+                    <p>Collect the planters when they are fully grown. Overrides the 'Harvest Every X Hours' setting</p>
+                </div>
+                    <label class="checkbox-container" style="margin-top: 0.6rem;">
+                        <input type="checkbox" id="manual_planters_collect_full" onchange="saveSetting(this, 'profile')">
+                        <span class="checkmark"></span>
+                    </label>
+            </form> 
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Collect Planter Loot</label>
+                    <p>Collect tokens dropped after harvesting planters. Disable this to harvest planters without sweeping up loot.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="manual_planters_collect_loot" data-setting-id="planters_collect_loot" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label>
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Fast Planter Paths</label>
+                    <p>Walk straight from one planter field to the next after placing a planter. Disable this to reset and cannon to every field instead.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="manual_planters_fast_paths" data-setting-id="planters_fast_paths" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label>
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Planter check</label>
+                    <p>Check inventory after looting planters and make sure that the planter was in fact collected.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem; margin-left: 8px;">
+                        <input type="checkbox" id="manual_planters_check" onchange="saveSetting(this, 'profile')">
+                        <span class="checkmark"></span>
+                    </label>
+                </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Clear Planter Timers</label>
+                    <p>Resets the macro's tracking data for the planters</p>
+                </div>
+                <!--Use div instead of button to avoid triggering form reload. event.preventDefault would be better but this is getting loaded by jquery so its a hassle-->
+                <div id = "manual-planters-reset-btn" class="purple-button" onclick="clearManualPlantersData()" style="width: 5rem; display: flex; justify-content: center; padding: 0.3rem; cursor: pointer;">Reset</div>
+            </form> 
+        </div>
+        
+        <div class = "poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;" id = "manual-planters-cycles">
+            <h2>Planter Cycles</h2>
+            <p style = "font-weight:500; font-size:1rem;">The macro can place and collect up to 3 planters at once each cycle. Setting a field or planter as 'none' will make the macro ignore that slot</p>
+        </div>
+
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2>Selected Planters</h2>
+            <p style="font-weight:500; font-size:1rem;">Map selected planters to hotbar slots. Slot 0 uses inventory search.</p>
+            <div class="seperator"></div>
+            <div id="manual-selected-planter-hotbar-slots" class="planter-hotbar-grid">
+
+            </div>
+        </div>
+    </div>
+    
+    <div id = "planters-auto" class="planter-tab tab-main" style="display: none;">
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2 id="auto-planters">Auto Planters/Planter+</h2>
+            <p style="font-weight:500; font-size:1rem;"></p>
+            <div class="seperator"></div>
+            
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%;">
+                <div style="width: 70%;">
+                    <label>Harvest Every X Hours</label>
+                    <p>The maximum amount of time for planters to grow before being harvested. 2-3 is recommended</p>
+                </div>
+                <input type="text" id="auto_planters_collect_every" style="width: 8rem; margin-top: 0.6rem;" class="poppins-regular textbox" data-input-type="float" data-input-limit="4" onkeypress="return textboxRestriction(this, event)" onchange="saveSetting(this, 'profile')">
+            </form> 
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Harvest When Full</label>
+                    <p>Collect the planters when they are fully grown. Overrides the 'Harvest Every X Hours' setting</p>
+                </div>
+                    <label class="checkbox-container" style="margin-top: 0.6rem;">
+                        <input type="checkbox" id="auto_planters_collect_full" onchange="saveSetting(this, 'profile')" data-input-bind="auto_planters_collect_auto">
+                        <span class="checkmark"></span>
+                    </label>
+            </form> 
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Collect Planter Loot</label>
+                    <p>Collect tokens dropped after harvesting planters. Disable this to harvest planters without sweeping up loot.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="auto_planters_collect_loot" data-setting-id="planters_collect_loot" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label>
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Fast Planter Paths</label>
+                    <p>Walk straight from one planter field to the next after placing a planter. Disable this to reset and cannon to every field instead.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="auto_planters_fast_paths" data-setting-id="planters_fast_paths" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label>
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Planter check</label>
+                    <p>Check inventory after looting planters and make sure that the planter was in fact collected.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem; margin-left: 8px;">
+                        <input type="checkbox" id="auto_planters_check" onchange="saveSetting(this, 'profile')">
+                        <span class="checkmark"></span>
+                    </label>
+                </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label for="auto_drops_monthly_waxes">Monthly Waxes</label>
+                    <p>Plant the planter and field pairs that drop a Caustic or Swirled Wax when their cooldown is up. These go before the other planters and grow fully. Uses the planters and fields allowed below.</p>
+                    <p id="auto_drops_monthly_waxes_hint" style="display: none; color: #6b7280;">Select a planter below that gives this drop to turn it on.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="auto_drops_monthly_waxes" data-setting-id="planter_monthly_waxes" onchange="savePlanterDropSetting(this)">
+                    <span class="checkmark"></span>
+                </label>
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label for="auto_drops_bonus_loot">Bonus Loot</label>
+                    <p>Plant the pairs and field orders that drop other loot, like Glue, Oil, Blue Extract and Neonberries, when their cooldown is up. These go before the other planters and grow fully. Uses the planters and fields allowed below.</p>
+                    <p id="auto_drops_bonus_loot_hint" style="display: none; color: #6b7280;">Select a planter below that gives this drop to turn it on.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="auto_drops_bonus_loot" data-setting-id="planter_bonus_loot" onchange="savePlanterDropSetting(this)">
+                    <span class="checkmark"></span>
+                </label>
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Auto Harvest</label>
+                    <p>Let the macro decide when to harvest planters for optimal nectar maintenance. Overrides the 'Harvest Every X Hours' setting</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="auto_planters_collect_auto" onchange="saveSetting(this, 'profile')" data-input-bind="auto_planters_collect_full">
+                    <span class="checkmark"></span>
+                </label>
+            </form> 
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top: 1rem;">
+                <div style="width: 70%;">
+                    <label>Max Planters</label>
+                    <p>Maximum number of planters that can be placed at any time</p>
+                </div>
+                <input type="text" id="auto_max_planters" style="width: 8rem; margin-top: 0.6rem;" class="poppins-regular textbox" data-input-type="int" data-input-limit="1" onkeypress="return textboxRestriction(this, event)" onchange="saveSetting(this, 'profile')">
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top: 1rem;">
+                <div style="width: 70%;">
+                    <label for="auto_degradation_weight">Degradation Weight</label>
+                    <p>When choosing a field, count its degradation this many times worse, so planters spread across more fields for more loot. Doesn't change how long planters grow</p>
+                </div>
+                <input type="text" id="auto_degradation_weight" style="width: 8rem; margin-top: 0.6rem;" class="poppins-regular textbox" data-input-type="float" data-input-limit="4" onkeypress="return textboxRestriction(this, event)" onchange="saveSetting(this, 'profile')">
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top: 1rem;">
+                <div style="width: 70%;">
+                    <label for="auto_upkeep_nectars">Nectars to Upkeep</label>
+                    <p>How many nectars from the top of the Nectar Priority list get planters (1-5). Lower it if you can't keep all 5 up</p>
+                </div>
+                <input type="text" id="auto_upkeep_nectars" style="width: 8rem; margin-top: 0.6rem;" class="poppins-regular textbox" data-input-type="int" data-input-limit="1" onkeypress="return textboxRestriction(this, event)" onchange="saveSetting(this, 'profile')">
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Clear Planter Timers</label>
+                    <p>Resets the macro's tracking data for the planters</p>
+                </div>
+                
+                <div id = "auto-planters-reset-btn" class="purple-button" onclick="resetAutoPlantersTimersAll()" style="width: 5rem; display: flex; justify-content: center; padding: 0.3rem; cursor: pointer;">Reset</div>
+            </form> 
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem" ;="">
+                <div style="width: 70%;">
+                    <label>Presets</label>
+                    <p>Recommended nectar priority and field settings based on hive color</p>
+                </div>
+                
+                <div data-onchange="changePreset(this)" id="auto_preset" class="custom-select poppins-regular" style="width: 10rem; margin-top: 0.6rem;">
+                    <div class="select-area">
+                        <div class="value" data-value="m">M</div>
+                        <div class="chevron">&gt;</div>
+                    </div>
+                    <div class="select-menu-relative">
+                        <div class="select-menu" style="display: none;">
+                            <div class="option" data-value="blue">Blue</div>
+                            <div class="option" data-value="red">Red</div>
+                            <div class="option" data-value="white">White</div>
+                            <div class="option" data-value="custom">Custom</div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem">
+                <div style="width: 70%;">
+                    <label>Gather in Planter Fields</label>
+                    <p>When enabled, the macro will gather the planter's field immediately after placement so it collects while the planter grows.</p>
+                </div>
+                <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="auto_planters_gather" onchange="toggleAutoPlantersGather(this.checked)">
+                    <span class="checkmark"></span>
+                </label>
+            </form>
+        </div>
+
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2>Nectar Priority</h2>
+            <p style="font-weight:500; font-size:1rem;">The macro will aim to maintain nectars above the min%. The higher up a nectar is, the greater its priority</p>
+            <div class="seperator"></div>
+            <div id="auto-nectar-priority">
+                
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-top: 2rem;">
+                <img 
+                    src="./assets/cheatsheet/nectar.webp" 
+                    alt="Nectar Types Cheat Sheet"
+                    class="zoomable-image"
+                    style="width: 100%; max-width: 500px; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); cursor: pointer;"
+                />
+            </div>
+        </div>
+
+        <!-- Allowed Planters merged into Planter Field Restrictions (enable toggle moved into each planter panel) -->
+
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2>Planters Allowed & Restrictions</h2>
+            <p style="font-weight:500; font-size:1rem;">Restrict which fields each planter can be placed in when using Auto Planters.</p>
+            <div class="seperator"></div>
+            <div id="auto-planter-field-restrictions">
+
+            </div>
+        </div>
+
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2>Allowed Fields</h2>
+            <p style="font-weight:500; font-size:1rem;">Fields the macro can plant in</p>
+            <div class="seperator"></div>
+            <div id="auto-allowed-fields">
+
+            </div>
+        </div>
+
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2>Selected Planters</h2>
+            <p style="font-weight:500; font-size:1rem;">Map enabled planters to hotbar slots. Slot 0 uses inventory search.</p>
+            <div class="seperator"></div>
+            <div id="auto-selected-planter-hotbar-slots" class="planter-hotbar-grid">
+
+            </div>
+        </div>
+        
+        <div class="poppins-medium standard-container" style="flex-direction: column; padding-top: 1rem; justify-content: unset;">
+            <h2>Wax from Planters</h2>
+            <p style="font-weight:500; font-size:1rem;">Reference guide for wax drops from different planters</p>
+            <div class="seperator"></div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-top: 1rem;">
+                <img 
+                    src="./assets/cheatsheet/planters.webp" 
+                    alt="Wax from Planters Cheat Sheet"
+                    class="zoomable-image"
+                    style="width: 100%; max-width: 600px; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); cursor: pointer;"
+                />
+            </div>
+        </div>
+    
+    </div>
+
+</div>
+</div>
+
+<div id="import-planters-modal" class="modal-overlay">
+    <div class="modal-dialog poppins-regular">
+        <h3>Import Planter Settings</h3>
+        <p>Paste your JSON settings below:</p>
+        <textarea id="import-planters-json-textarea" class="modal-textarea" placeholder="Paste JSON here..."></textarea>
+        <div class="modal-actions">
+            <button id="cancel-import-planters-button" class="btn-cancel">Cancel</button>
+            <button id="confirm-import-planters-button" class="btn-confirm">Import</button>
+        </div>
+    </div>
+</div>

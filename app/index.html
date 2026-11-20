@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Fuzzy Macro</title>
+  <link rel="stylesheet" href="styles/style.css" />
+  <link rel="shortcut icon" type="image/x-icon" href="assets/general/icon.png" />
+  <script type="text/javascript" src="./scripts/jquery.js"></script>
+  <script type="text/javascript" src="./scripts/ui-builder.js"></script>
+  <script type="text/javascript" src="./scripts/emojis.js"></script>
+  <script type="text/javascript" src="./scripts/memory-match-rewards.js"></script>
+  <script type="text/javascript" src="./scripts/report-buffs.js"></script>
+  <script type="text/javascript" src="./scripts/themes.js"></script>
+<style>.preview-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:10px;white-space:nowrap;z-index:950;font:500 12px Poppins,sans-serif;background:var(--surface);color:var(--text-dim);border:1px solid var(--border);border-radius:999px;padding:6px 12px}.preview-pill a{color:var(--primary);text-decoration:underline;margin-left:6px}</style>
+</head>
+
+<body>
+  <div class="app-container">
+    <header class="topbar">
+      <div class="app-title">Fuzzy Macro <span id="version" class="app-version"></span></div>
+      <nav id="tabs-placeholder" aria-label="Main">
+        <!-- Tabs loaded via JS -->
+      </nav>
+      <div class="run-controls">
+        <select id="macro_mode" aria-label="Macro Mode">
+          <option value="normal">Normal Mode</option>
+          <option value="alt">Alt Mode</option>
+          <option value="field">Field Mode</option>
+          <option value="quest">Quest Mode</option>
+          <option value="bug">Bug Run Mode</option>
+          <option value="boost">Boost Mode</option>
+          <option value="resources">Resources Mode</option>
+          <option value="vic">Vic Hop Mode</option>
+        </select>
+        <button class="purple-button d-none" id="stop-btn">Stop [F3]</button>
+        <button class="purple-button" id="start-btn">Start [F1]</button>
+      </div>
+    </header>
+    <div id="update-progress" class="update-progress d-none" aria-live="polite">
+      <div class="update-progress-row">
+        <span id="update-progress-label">Preparing update</span>
+        <span id="update-progress-percent">0%</span>
+      </div>
+      <div class="update-progress-track">
+        <div id="update-progress-bar" class="update-progress-bar"></div>
+      </div>
+    </div>
+
+    <main class="main-content-container">
+      <div id="home-placeholder" class="content" style="display: flex;"></div>
+      <div id="gather-placeholder" class="content"></div>
+      <div id="collect-placeholder" class="content"></div>
+      <div id="config-placeholder" class="content"></div>
+      <div id="kill-placeholder" class="content"></div>
+      <div id="planters-placeholder" class="content"></div>
+      <div id="boost-placeholder" class="content"></div>
+      <div id="quests-placeholder" class="content"></div>
+      <div id="tools-placeholder" class="content"></div>
+    </main>
+  </div>
+
+  <script type="text/javascript" src="./eel-stub.js"></script>
+  <script src="./scripts/script.js"></script>
+  <script src="./scripts/tabs/tab.js"></script>
+  <script src="./scripts/tabs/home.js"></script>
+  <script src="./scripts/tabs/gather.js"></script>
+  <script src="./scripts/tabs/config.js"></script>
+  <script src="./scripts/tabs/collect.js"></script>
+  <script src="./scripts/tabs/kill.js"></script>
+  <script src="./scripts/tabs/planters.js"></script>
+  <script src="./scripts/tabs/boost.js"></script>
+  <script src="./scripts/tabs/quests.js"></script>
+  <script src="./scripts/tabs/tools.js"></script>
+  <script>
+    // Fetch version from version.txt and optionally append commit hash
+    (async () => {
+      try {
+        const vRes = await fetch('./version.txt');
+        const version = (await vRes.text()).trim();
+        let display = 'v' + (version || '?');
+        // try to fetch optional commit marker written by updater
+        try {
+          const cRes = await fetch('./updated_commit.txt');
+          if (cRes.ok) {
+            const commit = (await cRes.text()).trim();
+            if (commit) display += ' - ' + commit;
+          }
+        } catch (e) {
+          // ignore if marker missing or fetch fails
+        }
+        document.getElementById('version').textContent = display;
+      } catch (e) {
+        document.getElementById('version').textContent = 'v?';
+      }
+    })();
+  </script>
+<div class="preview-pill">New layout · preview, not connected to a macro<a href="../before/">See the current layout</a></div>
+</body>
+
+</html>

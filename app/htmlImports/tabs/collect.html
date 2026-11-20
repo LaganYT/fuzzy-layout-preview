@@ -1,0 +1,777 @@
+<div class="page">
+  <div id="collect-nav" class="sub-nav-bar">
+    <div id="collect-dispensers" class="collect-tab-item active">
+      Dispensers
+    </div>
+    <div id="collect-activities" class="collect-tab-item">
+      Activities
+    </div>
+    <div id="collect-seasonal" class="collect-tab-item">
+      Seasonal
+    </div>
+    <div id="collect-sprouts" class="collect-tab-item">
+      Sprouts
+    </div>
+    <div id="collect-blender" class="collect-tab-item">
+      Blender
+    </div>
+  </div>
+
+  <div id="collect-dispensers-tab" class="sub-tab-panel active">
+    <script>
+      const parentCollectDispensers = document.getElementById("collect-dispensers-tab");
+      buildStandardContainer(parentCollectDispensers, "Regular ⏳", "", [
+        {
+          id: "wealth_clock",
+          title: "Wealth Clock",
+          desc: "Collect the wealth clock",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "honey_dispenser",
+          title: "Honey Dispenser",
+          desc: "Collect the honey dispenser near your hive",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "blueberry_dispenser",
+          title: "Blueberry Dispenser",
+          desc: "Collect the blueberry dispenser in the blue HQ",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "strawberry_dispenser",
+          title: "Strawberry Dispenser",
+          desc: "Collect the strawberry dispenser in the red HQ",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "coconut_dispenser",
+          title: "Coconut Dispenser",
+          desc: "Collect the Coconut Dispenser in the Coconut Cave <br> Note: Coconut Crab can respawn at any time, be certain it can be collected",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "royal_jelly_dispenser",
+          title: "(Free) Royal Jelly Dispenser",
+          desc: "Collect the free royal jelly dispenser in the star hall",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "ant_pass_dispenser",
+          title: "(Free) Ant Pass Dispenser",
+          desc: "Collect the free ant pass dispenser",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "buy_ant_pass",
+          title: "Buy Ant Pass",
+          desc: "Spend tickets at the ant pass dispenser (same inventory limit as free)",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "robo_pass_dispenser",
+          title: "(Free) Robo Pass Dispenser",
+          desc: "Collect the free Robo Pass dispenser",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "treat_dispenser",
+          title: "Treat Dispenser",
+          desc: "Collect the treat dispenser in front the pro shop",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "honeystorm",
+          title: "Honey Storm",
+          desc: "Summon a Honey Storm",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "honeystorm_collect_tokens",
+          title: "Collect Storm Tokens",
+          desc: "After summoning, gather the storm's Honey Tokens in Clover with AI Gathering",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentCollectDispensers, "Glue Dispenser", "", [
+        {
+          id: "glue_dispenser",
+          title: "Glue Dispenser",
+          desc: "Collect the glue dispenser in gummy bear's lair",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "glue_dispenser_use_gumdrop_slot",
+          title: "Use Gumdrop Slot",
+          desc: "Use the gumdrop quickslot instead of searching the inventory when using gumdrops",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+    </script>
+  </div>
+
+  <div id="collect-activities-tab" class="sub-tab-panel">
+    <script>
+      const parentCollectActivities = document.getElementById("collect-activities-tab");
+      buildStandardContainer(parentCollectActivities, "Sticker Printer 🖨️", "", [
+        {
+          id: "sticker_printer",
+          title: "Enable Task",
+          desc: "Print stickers using the sticker printer at mountain top",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "sticker_printer_egg",
+          title: "Egg",
+          desc: "The type of egg to donate to the printer",
+          type: {
+            name: "dropdown",
+            data: ["Basic", "Silver", "Gold", "Diamond", "Mythic"],
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      const memoryMatchRewards = window.memoryMatchRewards || [
+        "Magic Bean",
+        "Micro-Converter",
+        "Field Dice",
+        "Tickets",
+        "Oil",
+        "Enzymes",
+        "Glitter",
+        "Royal Jelly",
+        "Gumdrops",
+        "Jelly Beans",
+        "Sunflower Seeds",
+        "Pineapples",
+        "Moon Charms",
+        "Honeysuckles",
+        "Treats",
+        "Blueberries",
+        "Strawberries",
+        "Glue",
+        "Coconuts",
+        "Star Jelly",
+        "Cyan Decorative Border Sticker",
+        "Red Extract",
+        "Blue Extract",
+        "Tropical Drink",
+        "Cloud Vial",
+        "Stingers",
+        "Gold Egg",
+        "Sideways Spirit Bear Sticker",
+        "Diamond Egg",
+        "Star Treat",
+        "Gingerbread Bear",
+        "Soft Wax",
+        "Smooth Dice",
+        "Swirled Wax",
+        "Night Bell",
+        "Silver Egg",
+        "Super Smoothie",
+        "Mythic Egg",
+        "Festive Bean",
+      ];
+
+      const memoryMatchRewardTypes = {
+        "blueberries": ["normal", "mega", "extreme"],
+        "enzymes": ["normal", "mega", "extreme", "winter"],
+        "field dice": ["normal", "mega", "winter"],
+        "glitter": ["normal", "mega", "extreme", "winter"],
+        "gumdrops": ["normal", "mega", "extreme", "winter"],
+        "honeysuckles": ["normal", "mega", "extreme", "winter"],
+        "jelly beans": ["normal", "mega", "extreme", "winter"],
+        "magic bean": ["normal", "mega", "extreme", "winter"],
+        "micro-converter": ["normal", "mega", "extreme", "winter"],
+        "moon charms": ["normal", "mega"],
+        "oil": ["normal", "mega", "extreme", "winter"],
+        "pineapples": ["normal", "mega", "extreme"],
+        "royal jelly": ["normal", "mega", "extreme"],
+        "strawberries": ["normal", "mega", "extreme"],
+        "sunflower seeds": ["normal", "mega", "extreme"],
+        "tickets": ["normal", "mega", "extreme", "winter"],
+        "treats": ["normal", "mega", "extreme"],
+        "coconuts": ["mega", "extreme"],
+        "glue": ["mega"],
+        "cyan decorative border sticker": ["mega"],
+        "star jelly": ["mega", "extreme", "winter"],
+        "blue extract": ["extreme"],
+        "cloud vial": ["extreme"],
+        "diamond egg": ["extreme", "winter"],
+        "gold egg": ["extreme", "winter"],
+        "sideways spirit bear sticker": ["extreme"],
+        "red extract": ["extreme"],
+        "star treat": ["extreme", "winter"],
+        "stingers": ["extreme"],
+        "tropical drink": ["extreme", "winter"],
+        "festive bean": ["winter"],
+        "gingerbread bear": ["winter"],
+        "hard wax": ["winter"],
+        "mythic egg": ["winter"],
+        "night bell": ["winter"],
+        "silver egg": ["winter"],
+        "smooth dice": ["winter"],
+        "soft wax": ["winter"],
+        "super smoothie": ["winter"],
+        "swirled wax": ["winter"],
+      };
+
+      const memoryMatchRewardOptions = memoryMatchRewards.map((reward) => {
+        if (!reward || typeof reward !== "object") return reward;
+        return {
+          ...reward,
+          types: memoryMatchRewardTypes[reward.value] || [],
+        };
+      });
+
+      buildStandardContainer(parentCollectActivities, "Memory Match 💭", "", [
+        {
+          id: "memory_match",
+          title: "Memory Match",
+          desc: "Complete the memory match in front of pro shop",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mega_memory_match",
+          title: "Mega Memory Match",
+          desc: "Complete the memory match inside the badge bearer guild",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "extreme_memory_match",
+          title: "Extreme Memory Match",
+          desc: "Complete the memory match near pepper field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "winter_memory_match",
+          title: "Winter Memory Match",
+          desc: "Collect the memory match near honey bee",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "memory_match_rewards",
+          title: "Preferred Rewards",
+          desc: "When any rewards are selected, known matching pairs for those rewards are prioritized. Tile badges show where each reward can appear: N = normal, M = mega, E = extreme, W = winter. Leave empty to solve normally.",
+          type: {
+            name: "multicheck",
+            data: memoryMatchRewardOptions,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      const windShrineItemsArray = toImgArray(blenderIcons);
+      buildStandardContainer(parentCollectActivities, "Wind Shrine", "", [
+        {
+          id: "wind_shrine",
+          title: "Enable Task",
+          desc: "Donate an item to the Wind Shrine",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "wind_shrine_item",
+          title: "Offering",
+          desc: "Item to offer to the Wind Shrine",
+          type: {
+            name: "dropdown",
+            data: windShrineItemsArray,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "wind_shrine_quantity",
+          title: "Quantity",
+          desc: "Quantity to offer",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 4,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentCollectActivities, "Ant Challenge 🎯", "", [
+        {
+          id: "ant_challenge",
+          title: "Enable Task",
+          desc: "Complete ant challenges. The macro will keep the ant amulet",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+    </script>
+  </div>
+
+  <div id="collect-seasonal-tab" class="sub-tab-panel">
+    <script>
+      const parentCollectSeasonal = document.getElementById("collect-seasonal-tab");
+      buildStandardContainer(parentCollectSeasonal, "Beesmas 🎅🏻", "", [
+        {
+          id: "stockings",
+          title: "Stockings",
+          desc: "Collect the stockings near clover field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "feast",
+          title: "Feast",
+          desc: "Collect the stockings near polar bear",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "gingerbread",
+          title: "Gingerbread House",
+          desc: "Collect the gingerbread house",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "samovar",
+          title: "Samovar",
+          desc: "Collect the samovar outside dapper bear's shop",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "snow_machine",
+          title: "Snow Machine",
+          desc: "Collect the snow machine on top of blue HQ",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "lid_art",
+          title: "Lid art",
+          desc: "Collect the lid art near onett",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "candles",
+          title: "Candles",
+          desc: "Collect the candles next to the red HQ",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "wreath",
+          title: "Honey Wreath",
+          desc: "Collect the honey wreath near black bear",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "gummy_beacon",
+          title: "Gummy Beacon",
+          desc: "Collect the Gummy Beacon",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentCollectSeasonal, "Petals & Blooms", "Reference guide for petals and blooms", []);
+      const seasonalContainers = parentCollectSeasonal.querySelectorAll(".standard-container");
+      const petalsContainer = seasonalContainers[seasonalContainers.length - 1];
+      const petalsImageContainer = document.createElement("div");
+      petalsImageContainer.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-top: 1rem; width: 100%;";
+      petalsImageContainer.innerHTML = `
+                <img 
+                    src="./assets/cheatsheet/petals.webp" 
+                    alt="Petals and Blooms Cheat Sheet"
+                    class="zoomable-image"
+                    style="width: 100%; max-width: 600px; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); cursor: pointer;"
+                />
+            `;
+      petalsContainer.appendChild(petalsImageContainer);
+    </script>
+  </div>
+
+  <div id="collect-sprouts-tab" class="sub-tab-panel">
+    <script>
+      const parentCollectSprouts = document.getElementById("collect-sprouts-tab");
+      const sproutFields = [
+        "sunflower",
+        "dandelion",
+        "mushroom",
+        "blue flower",
+        "clover",
+        "strawberry",
+        "spider",
+        "bamboo",
+        "pineapple",
+        "stump",
+        "cactus",
+        "pumpkin",
+        "pine tree",
+        "rose",
+        "mountain top",
+        "coconut",
+        "pepper",
+        "hive hub",
+      ];
+      const sproutFieldOptions = sproutFields.map((field) => ({
+        label: field.split(" ").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" "),
+        value: field,
+      }));
+
+      buildStandardContainer(parentCollectSprouts, "Sprouts", "", [
+        {
+          id: "sprouts_enable",
+          title: "Enable Task",
+          desc: "Plant Magic Beans in the selected field and gather sprout drops with AI token targeting.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "sprouts_magic_bean_slot",
+          title: "Magic Bean Slot",
+          desc: "Hotbar slot containing Magic Beans.",
+          type: {
+            name: "dropdown",
+            data: slotArray,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "sprouts_max_beans",
+          title: "Max Per Session",
+          desc: "How many Magic Beans the macro may use this session.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            length: 6,
+            triggerFunction: "saveSetting(this, 'profile')",
+          },
+        },
+        {
+          id: "sprouts_max_beans_per_gather",
+          title: "Max Per Gather",
+          desc: "How many Magic Beans the macro may use during one Sprouts gather before moving on.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            length: 6,
+            triggerFunction: "saveSetting(this, 'profile')",
+          },
+        },
+        {
+          id: "sprouts_final_loot_seconds",
+          title: "Final Loot Time",
+          desc: "Seconds to keep collecting drops after the Magic Bean limit is reached.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            length: 6,
+            triggerFunction: "saveSetting(this, 'profile')",
+          },
+        },
+        {
+          id: "sprouts_pattern_width",
+          title: "Pattern Width",
+          desc: "Width used by the AI gather pattern while collecting sprout drops.",
+          type: {
+            name: "dropdown",
+            data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "sprouts_field",
+          title: "Field",
+          desc: "Field where the sprout should be planted.",
+          type: {
+            name: "dropdown",
+            data: sproutFieldOptions,
+            length: 13,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "moon_sprouts_enable",
+          title: "Moon Sprouts",
+          desc: "Only plant sprouts at night, to collect Moon Charms. Night is detected by the same grass check Stinger Hunt uses, and the macro waits until then.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "moon_sprouts_count",
+          title: "Moon Sprouts Amount",
+          desc: "How many Magic Beans to plant each time night is detected.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            length: 6,
+            triggerFunction: "saveSetting(this, 'profile')",
+          },
+        },
+        {
+          id: "sprouts_ai_model",
+          title: "AI Model",
+          desc: "Model used to search for sprout drops. Loot models chase loot drops; token models use the token priority list.",
+          type: {
+            name: "dropdown",
+            data: [
+              "Standard",
+              { label: "Loot Light (macOS 12+)", value: "loot_light" },
+              { label: "Token Light (macOS 12+)", value: "token_light" },
+              { label: "Loot Mini (macOS 12+)", value: "loot_mini" },
+              { label: "Token Mini (macOS 12+)", value: "token_mini" },
+            ],
+            triggerFunction: "saveSetting(this, 'profile'); refreshSproutAIModelOptions();",
+          },
+        },
+        {
+          id: "configure-sprout-ai-tokens-button",
+          title: "Token Priority",
+          desc: "Choose which sprout drop tokens the AI should chase after the sprout pops, then sort them from highest to lowest priority.",
+          type: {
+            name: "button",
+            text: "Customize Tokens",
+            length: 10,
+            triggerFunction: "openSproutAITokenPopup()",
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentCollectSprouts, "Sticker Sprout", "", [
+        {
+          id: "sticker_sprout_watch",
+          title: "Watch For Sticker Sprout",
+          desc: "Watch blue text for Sticker Sprout Hive Hub spawn messages, then travel to Hive Hub and collect drops.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "sticker_sprout_gather_minutes",
+          title: "Gather Time",
+          desc: "Minutes to gather in Hive Hub after a Sticker Sprout spawn is detected.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            length: 6,
+            triggerFunction: "saveSetting(this, 'profile')",
+          },
+        },
+      ]);
+
+      parentCollectSprouts.insertAdjacentHTML(
+        "beforeend",
+        `
+          <input type="hidden" id="sprouts_preferred_tokens">
+          <input type="hidden" id="sprouts_ignored_tokens">
+          <div id="sprout-ai-token-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-dialog poppins-regular" style="max-width: 42rem; width: 90%; max-height: 85vh; overflow: hidden; display:flex; flex-direction:column;">
+              <h3>Sprout Token Priority</h3>
+              <p>Enable sprout drop tokens the AI should chase after the sprout pops. Drag tokens to sort them from highest to lowest priority.</p>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+                <button class="import-export-button sprout-ai-token-preset" data-preset="field">Field Drops</button>
+                <button class="import-export-button sprout-ai-token-preset" data-preset="all">All Sprout Drops</button>
+                <button class="import-export-button sprout-ai-token-preset" data-preset="clear">Clear</button>
+              </div>
+              <div id="sprout-ai-token-list" style="overflow:auto; padding-right:0.5rem; margin-top:0.5rem;"></div>
+              <div class="modal-actions" style="margin-top:1rem;">
+                <button id="cancel-sprout-ai-tokens-button" class="btn-cancel">Cancel</button>
+                <button id="save-sprout-ai-tokens-button" class="btn-confirm">Save Tokens</button>
+              </div>
+            </div>
+          </div>
+        `
+      );
+
+      buildStandardContainer(parentCollectSprouts, "Drop Guide", "Common and rare sprout drop reference by field and sprout type.", []);
+      const sproutContainers = parentCollectSprouts.querySelectorAll(".standard-container");
+      const sproutGuideContainer = sproutContainers[sproutContainers.length - 1];
+      const sproutGuide = document.createElement("div");
+      sproutGuide.className = "sprout-guide-image-container";
+      sproutGuide.innerHTML = `
+        <img
+          src="./assets/cheatsheet/sprouts.webp"
+          alt="Sprout Drops Cheat Sheet"
+          class="zoomable-image sprout-guide-image"
+        />
+      `;
+      sproutGuideContainer.appendChild(sproutGuide);
+
+    </script>
+  </div>
+
+  <div id="collect-blender-tab" class="sub-tab-panel">
+    <script>
+      const parentCollectBlender = document.getElementById("collect-blender-tab");
+      buildStandardContainer(parentCollectBlender, "Blender", "", [
+        {
+          id: "blender_enable",
+          title: "Enable Task",
+          desc: "Craft and collect items from the blender",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "blender-reset",
+          title: "Reset Blender Timers",
+          desc: "Resets the macro's tracking data on blender items",
+          type: {
+            name: "button",
+            text: "Reset",
+            triggerFunction: "clearBlenderData(this)",
+          },
+        },
+      ]);
+
+      function blenderItemDropDownHTML(id) {
+        return buildInput(id, {
+          name: "dropdown",
+          data: fieldNectarArray,
+          triggerFunction: "saveSetting(this, 'profile')",
+        });
+      }
+
+      const blenderItemsArray = toImgArray(blenderIcons);
+      const blenderParent = document.getElementById("blender").parentElement;
+      const blenderItemSlots = 5;
+      for (let i = 1; i <= blenderItemSlots; i++) {
+        const blenderItemHTML = `
+                    <div class="seperator" style="margin-bottom: 1rem;"></div>
+                    <h3 class="poppins-semibold" style = "margin-bottom: 0.9rem;">Item ${i}</h3>
+                    <div style="display:flex; justify-content:space-between; align-items: flex-start; flex-wrap: wrap">
+                        <div style="display:flex; align-items: flex-end">
+                            <h4 class="poppins-regular" style = "margin-right: 0.7rem">Item:</h4>
+                            ${buildInput(`blender_item_${i}`,{
+                                name: "dropdown",
+                                data: blenderItemsArray,
+                                triggerFunction: "saveSetting(this, 'profile')",   
+                            })}
+                        </div>
+                        <div style="display:flex; align-items: flex-start;">
+                            <h4 class="poppins-regular" style = "margin-right: 0.7rem; margin-top: 0.7rem;">Quantity:</h4>
+                            <div>
+                                ${buildInput(`blender_quantity_${i}`, {name: "textbox", triggerFunction: "saveSetting(this, 'profile')", inputType: "int", length:7})}
+                                <div style="display:flex; margin-top: 0.3rem; width:100%; justify-content: space-between">
+                                    <div>
+                                        <h4 class="poppins-regular" style = "margin-top:0.5rem">Max:</h4>
+                                        <div class="poppins-regular" style="font-size:0.9rem; color: #adb4bc">Craft the<br>max quantity</div>
+                                    </div>
+                                    ${buildInput(`blender_quantity_max_${i}`, {name: "checkbox", triggerFunction: "saveSetting(this, 'profile')"})}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items: flex-start;">
+                            <h4 class="poppins-regular" style = "margin-right: 0.7rem; margin-top: 0.7rem;">Repeat:</h4>
+                            <div>
+                                ${buildInput(`blender_repeat_${i}`, {name: "textbox", triggerFunction: "saveSetting(this, 'profile')", inputType: "int", length:6})}
+                                <div style="display:flex; margin-top: 0.3rem; width:calc(100% + 1rem); justify-content: space-between">
+                                    <div>
+                                        <h4 class="poppins-regular" style = "margin-top:0.5rem">Inf:</h4>
+                                        <div class="poppins-regular" style="font-size:0.9rem; color: #adb4bc">Repeat<br>infinitely</div>
+                                    </div>
+                                    ${buildInput(`blender_repeat_inf_${i}`, {name: "checkbox", triggerFunction: "saveSetting(this, 'profile')"})}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+        blenderParent.innerHTML += blenderItemHTML;
+      }
+    </script>
+  </div>
+</div>

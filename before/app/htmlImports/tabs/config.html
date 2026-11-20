@@ -1,0 +1,1472 @@
+<div class="main-content-container">
+  <div id="config-nav" class="sub-nav-bar poppins-regular" style="margin-bottom: 2rem;">
+    <div id="setting-bss" class="config-tab-item active">
+      Bee Swarm
+    </div>
+    <div id="setting-priorities" class="config-tab-item">
+      Task Priorities
+    </div>
+    <div id="setting-rejoin" class="config-tab-item">
+      Rejoin &amp; Recovery
+    </div>
+    <div id="setting-other" class="config-tab-item">
+      App Settings
+    </div>
+    <div id="setting-discord" class="config-tab-item" style="display: flex; align-items: center">
+      Discord
+    </div>
+    <div id="setting-profiles" class="config-tab-item">
+      User Profiles
+    </div>
+  </div>
+  <div id="bss" class="standard-container sub-tab-panel active">
+    <script>
+      const parentBSS = document.getElementById("bss");
+      buildStandardContainer(parentBSS, "Hive", "", [
+        {
+          id: "preferred_hive_slot",
+          title: "Preferred Hive Slot",
+          desc: "The preferred hive to claim first. If taken, the macro takes the open slot closest to the red cannon (hive 1). 1 is closest to cannon and 6 is furthest.",
+          type: {
+            name: "dropdown",
+            data: [1, 2, 3, 4, 5, 6],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "hive_claim_method",
+          title: "Hive Claim Method",
+          desc: "Detect zooms out and finds open hives from spawn, then checks slots if it can't see any. Check walks from spawn to your preferred hive slot, then scans neighboring pads if it's taken.",
+          type: {
+            name: "dropdown",
+            data: [
+              { label: "Detect", value: "detect" },
+              { label: "Check", value: "check" },
+            ],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "hive_exclude_slot",
+          title: "Exclude Hive Slot On Private-Server Rejoin",
+          desc: "Skip these hive slots only when rejoining a private server. Your preferred hive slot is never excluded.",
+          type: {
+            name: "dropdown",
+            multiple: true,
+            data: [
+              { label: "1", value: 1 },
+              { label: "2", value: 2 },
+              { label: "3", value: 3 },
+              { label: "4", value: 4 },
+              { label: "5", value: 5 },
+              { label: "6", value: 6 },
+            ],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "disable_tool_at_hive",
+          title: "Disable Tool at Hive",
+          desc: "Stops mouse clicking while converting at your hive, so your equipped tool is not used.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "movespeed",
+          title: "Movespeed",
+          desc: "Your movespeed without any haste",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 5,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "bees",
+          title: "Bees",
+          desc: "The number of bees in your hive",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "haste_compensation",
+          title: "Enable Haste Compensation",
+          desc: "Adjust the macro's movements based on the amount of haste the player has. This is done by searching for haste and bear morph buffs on the screen",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "pine_tree_fast_return",
+          title: "Fast Return Path",
+          desc: "Use an alternate glider path when returning from Pine Tree field to the hive. Faster than the default walk path",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "walk_to_fields",
+          title: "Walk to Fields",
+          desc: "Walk from the hive to each field instead of using the cannon. Slower than the cannon, but it doesn't depend on finding the cannon. Mushroom always walks.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "fast_return_paths",
+          title: "Faster Walk Home",
+          desc: "Use shorter walks back to the hive from Clover, Coconut, Dandelion, Mountain Top, Mushroom, Pepper, Pine Tree (glider), Rose, Spider, Strawberry, Stump and Sunflower. Tested on Hive 3 only.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentBSS, "Hotbar Items", "", [
+        {
+          id: "sprinkler_type",
+          title: "Sprinkler Type",
+          desc: "The type of sprinkler that you use. Silver, Golden and Diamond sprinklers are spread out across the field when gathering",
+          type: {
+            name: "dropdown",
+            data: ["Basic", "Silver", "Golden", "Diamond", "Saturator"],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "sprinkler_slot",
+          title: "Sprinkler Slot",
+          desc: "The hotbar slot of the sprinkler",
+          type: {
+            name: "dropdown",
+            data: [1, 2, 3, 4, 5, 6],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "goo_slot",
+          title: "Gumdrop Slot",
+          desc: "The hotbar slot of your gumdrops, used for goo in fields, goo quests, and the glue dispenser",
+          type: {
+            name: "dropdown",
+            data: [1, 2, 3, 4, 5, 6, 7],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "glitter_slot",
+          title: "Glitter Slot",
+          desc: "The hotbar slot of your Glitter, used by field booster extending. Set to 0 to find Glitter in the inventory. Auto Field Boost and TAD alts have their own Glitter slots.",
+          type: {
+            name: "dropdown",
+            data: [0, 1, 2, 3, 4, 5, 6, 7],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentBSS, "Converting", "", [
+        {
+          id: "convert_balloon",
+          title: "Convert Balloon",
+          desc: "How often the macro should convert the balloon",
+          type: {
+            name: "dropdown",
+            data: ["Always", "Every", "Every Gather", "Balloon Blessing", "Never"],
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "convert_balloon_min_blessing",
+          title: "Min Blessing: x",
+          desc: "Minimum Balloon Blessing stack for Balloon Blessing conversion mode",
+          type: { name: "textbox", inputType: "int", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "convert_balloon_always_after",
+          title: "Always Convert After (m)",
+          desc: "In Balloon Blessing mode, convert at the next hive visit after this many minutes, even below the minimum stack",
+          type: { name: "textbox", inputType: "int", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "convert_balloon_every",
+          title: "Convert Balloon Every X Mins",
+          desc: "Convert the balloon every X mins. Only applies if convert balloon is set to 'every'",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "convert_wait",
+          title: "Wait X secs after converting",
+          desc: "Wait for X seconds after converting before moving. Useful for converting the last amount of pollen",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "max_convert_time",
+          title: "Max Convert Time (Mins)",
+          desc: "If the macro has been converting for over X minutes, it will trigger the timeout behavior.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "convert_timeout_behavior",
+          title: "Timeout Behavior",
+          desc: "Choose whether to move on to the next task or rejoin the game when the convert timeout is reached.",
+          type: {
+            name: "dropdown",
+            data: ["Move On", "Rejoin"],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentBSS, "AI Models", "", [
+        {
+          id: "use_sprinkler_model_for_drift_compensation",
+          title: "Use Sprinkler Model For Field Drift Compensation",
+          desc: "Use AI to detect your sprinkler for field drift compensation instead of the color-based method. If the model cannot run, the macro falls back automatically.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ai_gather_model",
+          title: "AI Gather Model",
+          desc: "Choose the token detection model used by AI Gathering. Light and Mini automatically fall back to Standard if they cannot load.",
+          type: {
+            name: "dropdown",
+            data: [
+              "Standard",
+              { label: "Light (macOS 12+)", value: "Light" },
+              { label: "Mini (macOS 12+)", value: "Mini" },
+            ],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "blooms_ai_model",
+          title: "BloomsAI Model",
+          desc: "Choose the bloom and petal detector. Standard is most accurate; Light and Mini trade accuracy for faster inference.",
+          type: {
+            name: "dropdown",
+            data: [
+              "Standard",
+              { label: "Light (Faster)", value: "Light" },
+              { label: "Mini (Fastest)", value: "Mini" },
+            ],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      parentBSS.insertAdjacentHTML("beforeend", `
+        <details class="model-downloads">
+          <summary>
+            <span>Model Downloads</span>
+            <span id="model-download-summary" class="model-download-summary">Checking…</span>
+          </summary>
+          <div class="model-download-content">
+            <p>Download only the AI models that are missing from this Mac.</p>
+            <div class="model-download-actions">
+              <button id="download-missing-models-button" class="purple-button" type="button" onclick="downloadMissingModels()">Download Missing Models</button>
+            </div>
+            <div id="model-download-status" class="model-download-status" aria-live="polite">Checking installed models…</div>
+            <div id="model-download-list" class="model-download-list"></div>
+          </div>
+        </details>
+      `);
+    </script>
+  </div>
+  <div id="priorities" class="standard-container sub-tab-panel" style="display: none">
+    <script>
+      const parentPriorities = document.getElementById("priorities");
+
+      // Helper function to get category for a task
+      function getTaskCategory(taskId) {
+        if (taskId.startsWith("gather_")) return "gather";
+        if (taskId.startsWith("collect_")) return "collect";
+        if (taskId.startsWith("kill_")) return "kill";
+        if (taskId.startsWith("quest_")) return "quest";
+        return "special";
+      }
+
+      // Helper function to get category badge text
+      function getCategoryBadge(category) {
+        const badges = {
+          gather: "GATHER",
+          collect: "COLLECT",
+          kill: "KILL",
+          quest: "QUEST",
+          special: "SPECIAL",
+        };
+        return badges[category] || "";
+      }
+
+      // Create standard container using shared builder
+      buildStandardContainer(parentPriorities, "Task Priority Order", "Drag and drop tasks to set their priority order. Tasks at the top run sooner. Quests and planters are handled automatically — their order doesn't matter. Use the search box to quickly find tasks. Grayed out tasks are not in the task queue, but can still be rearranged.", []);
+
+      // Find the container we just created
+      const priorityContainer = parentPriorities.querySelector('.standard-container');
+
+      // Insert search input and drag list
+      const dragListHTML = `
+        <style>
+          .priority-search-wrapper { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+          .priority-search {
+            flex:1 1 280px;
+            width:100%;
+            max-width:520px;
+            padding:8px 12px;
+            border-radius:8px;
+            background:var(--surface);
+            border:1px solid var(--border);
+            color:var(--text-main);
+            font-size:13px;
+            box-shadow:none;
+            outline:none;
+            transition:box-shadow 0.12s ease, border-color 0.12s ease, transform 0.06s ease;
+          }
+          .priority-search::placeholder { color:var(--text-dim); }
+          .priority-search:focus {
+            border-color:var(--primary);
+            box-shadow:0 0 0 6px rgba(var(--primary-rgb),0.08);
+            transform:translateY(-1px);
+          }
+          @media (max-width:600px) { .priority-search { max-width:100%; } }
+        </style>
+        <div class="priority-search-wrapper">
+          <input type="text" id="priority-search-input" class="priority-search" placeholder="🔍 Search tasks... (e.g., 'pine', 'collect', 'kill')" autocomplete="off" />
+          <button id="reset-task-priorities-button" class="import-export-button" type="button">
+            Reset Task Priorities
+          </button>
+        </div>
+        <div id="task_priority_order" class="drag-list" data-onchange="saveSetting(this, 'profile')">
+          <div class="drag-list-container" id="task_priority_order-container">
+            <!-- items will be enhanced by config.js -->
+            <div class="drag-item" data-id="gather_pine_tree" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Pine Tree</span></div>
+            <div class="drag-item" data-id="gather_sunflower" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Sunflower</span></div>
+            <div class="drag-item" data-id="gather_dandelion" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Dandelion</span></div>
+            <div class="drag-item" data-id="gather_mushroom" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Mushroom</span></div>
+            <div class="drag-item" data-id="gather_blue_flower" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Blue Flower</span></div>
+            <div class="drag-item" data-id="gather_clover" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Clover</span></div>
+            <div class="drag-item" data-id="gather_strawberry" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Strawberry</span></div>
+            <div class="drag-item" data-id="gather_spider" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Spider</span></div>
+            <div class="drag-item" data-id="gather_bamboo" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Bamboo</span></div>
+            <div class="drag-item" data-id="gather_cactus" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Cactus</span></div>
+            <div class="drag-item" data-id="gather_rose" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Rose</span></div>
+            <div class="drag-item" data-id="gather_pineapple" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Pineapple</span></div>
+            <div class="drag-item" data-id="gather_pumpkin" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Pumpkin</span></div>
+            <div class="drag-item" data-id="gather_coconut" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Coconut</span></div>
+            <div class="drag-item" data-id="gather_hive_hub" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Hive Hub</span></div>
+            <div class="drag-item" data-id="gather_pepper" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Pepper</span></div>
+            <div class="drag-item" data-id="gather_mountain_top" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Mountain Top</span></div>
+            <div class="drag-item" data-id="gather_stump" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Gather: Stump</span></div>
+            <div class="drag-item" data-id="collect_wind_shrine" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Wind Shrine</span></div>
+            <div class="drag-item" data-id="collect_wealth_clock" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Wealth Clock</span></div>
+            <div class="drag-item" data-id="collect_honey_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Honey Dispenser</span></div>
+            <div class="drag-item" data-id="collect_blueberry_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Blueberry Dispenser</span></div>
+            <div class="drag-item" data-id="collect_strawberry_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Strawberry Dispenser</span></div>
+            <div class="drag-item" data-id="collect_coconut_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Coconut Dispenser</span></div>
+            <div class="drag-item" data-id="collect_royal_jelly_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Royal Jelly Dispenser</span></div>
+            <div class="drag-item" data-id="collect_treat_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Treat Dispenser</span></div>
+            <div class="drag-item" data-id="collect_ant_pass_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Ant Pass Dispenser</span></div>
+            <div class="drag-item" data-id="collect_buy_ant_pass" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Buy Ant Pass</span></div>
+            <div class="drag-item" data-id="collect_robo_pass_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Robo Pass Dispenser</span></div>
+            <div class="drag-item" data-id="collect_glue_dispenser" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Glue Dispenser</span></div>
+            <div class="drag-item" data-id="collect_stockings" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Stockings</span></div>
+            <div class="drag-item" data-id="collect_wreath" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Wreath</span></div>
+            <div class="drag-item" data-id="collect_feast" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Feast</span></div>
+            <div class="drag-item" data-id="collect_gingerbread" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Gingerbread House</span></div>
+            <div class="drag-item" data-id="collect_samovar" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Samovar</span></div>
+            <div class="drag-item" data-id="collect_snow_machine" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Snow Machine</span></div>
+            <div class="drag-item" data-id="collect_lid_art" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Lid Art</span></div>
+            <div class="drag-item" data-id="collect_candles" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Candles</span></div>
+            <div class="drag-item" data-id="collect_gummy_beacon" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Gummy Beacon</span></div>
+            <div class="drag-item" data-id="collect_memory_match" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Memory Match</span></div>
+            <div class="drag-item" data-id="collect_mega_memory_match" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Mega Memory Match</span></div>
+            <div class="drag-item" data-id="collect_extreme_memory_match" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Extreme Memory Match</span></div>
+            <div class="drag-item" data-id="collect_winter_memory_match" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Winter Memory Match</span></div>
+            <div class="drag-item" data-id="collect_honeystorm" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Honeystorm</span></div>
+            <div class="drag-item" data-id="collect_blue_booster" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Blue Booster</span></div>
+            <div class="drag-item" data-id="collect_red_booster" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Red Booster</span></div>
+            <div class="drag-item" data-id="collect_mountain_booster" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Mountain Booster</span></div>
+            <div class="drag-item" data-id="collect_sticker_stack" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Sticker Stack</span></div>
+            <div class="drag-item" data-id="collect_sticker_printer" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Sticker Printer</span></div>
+            <div class="drag-item" data-id="collect_sprouts" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Sprouts</span></div>
+            <div class="drag-item" data-id="kill_stump_snail" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Stump Snail</span></div>
+            <div class="drag-item" data-id="kill_king_beetle" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: King Beetle</span></div>
+            <div class="drag-item" data-id="kill_tunnel_bear" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Tunnel Bear</span></div>
+            <div class="drag-item" data-id="kill_ladybug" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Ladybug</span></div>
+            <div class="drag-item" data-id="kill_rhinobeetle" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Rhinobeetle</span></div>
+            <div class="drag-item" data-id="kill_scorpion" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Scorpion</span></div>
+            <div class="drag-item" data-id="kill_mantis" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Mantis</span></div>
+            <div class="drag-item" data-id="kill_spider" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Spider</span></div>
+            <div class="drag-item" data-id="kill_werewolf" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Werewolf</span></div>
+            <div class="drag-item" data-id="kill_coconut_crab" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Kill: Coconut Crab</span></div>
+            <div class="drag-item" data-id="mondo_buff" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Collect: Mondo Buff</span></div>
+            <div class="drag-item" data-id="stinger_hunt" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Stinger Hunt</span></div>
+            <div class="drag-item" data-id="auto_field_boost" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Auto Field Boost</span></div>
+            <div class="drag-item" data-id="ant_challenge" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Ant Challenge</span></div>
+            <div class="drag-item" data-id="blender" draggable="true"><span class="drag-handle">⋮⋮</span><span class="drag-text">Blender</span></div>
+          </div>
+        </div>
+      `;
+
+      if (priorityContainer) priorityContainer.innerHTML += dragListHTML;
+
+      // Enhance items with categories/actions (the shared config.js will also attach drag behavior)
+      setTimeout(() => {
+        const container = document.getElementById("task_priority_order-container");
+        if (container) {
+          const items = container.querySelectorAll(".drag-item");
+          items.forEach((item) => {
+            const taskId = item.getAttribute("data-id");
+            if (!taskId || item.getAttribute("data-category")) return;
+
+            const category = getTaskCategory(taskId);
+            const badge = getCategoryBadge(category);
+            item.setAttribute("data-category", category);
+
+            if (!item.querySelector(".category-badge")) {
+              const dragText = item.querySelector(".drag-text");
+              if (dragText) {
+                const badgeEl = document.createElement("span");
+                badgeEl.className = "category-badge";
+                badgeEl.textContent = badge;
+                dragText.parentNode.insertBefore(badgeEl, dragText);
+              }
+            }
+
+            if (!item.querySelector(".drag-actions")) {
+              const actionsDiv = document.createElement("div");
+              actionsDiv.className = "drag-actions";
+              actionsDiv.innerHTML = `
+                  <button class="drag-action-btn move-to-top" title="Move to top">↑ Top</button>
+                  <button class="drag-action-btn move-to-bottom" title="Move to bottom">↓ Bottom</button>
+                `;
+              item.appendChild(actionsDiv);
+            }
+          });
+        }
+      }, 100);
+    </script>
+  </div>
+  <div id="rejoin" class="standard-container sub-tab-panel" style="display: none">
+    <script>
+      const parentRejoin = document.getElementById("rejoin");
+      buildStandardContainer(parentRejoin, "Joining", "", [
+        {
+          id: "always_rejoin",
+          title: "Always Rejoin",
+          desc: "Rejoin Bee Swarm whenever the macro starts. Disable this to keep the current Roblox session when it is already open.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "private_server_link",
+          title: "Private Server Link (Optional)",
+          desc: "The link of a private server for the macro to join.<br>If left blank, the macro will join a public server instead",
+          type: {
+            name: "textbox",
+            inputType: "string",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "hive_hub_private_server",
+          title: "Use Private Server for Hive Hub",
+          desc: "When travelling to Hive Hub, join through the configured private server link using the Hive Hub game ID. If disabled, Hive Hub uses a public server.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "manage-fallback-private-servers-button",
+          title: "Fallback Private Servers",
+          desc: "Configure up to three backup servers. Fuzzy tries each one after the primary server fails, before trying public servers.",
+          type: {
+            name: "button",
+            text: "Manage Servers",
+            length: 11,
+            triggerFunction: "openFallbackPrivateServersPopup()",
+          },
+        },
+        {
+          id: "rejoin_attempts",
+          title: "Rejoin Attempts Per Private Server",
+          desc: "Number of attempts the macro makes on each private server link before moving on to the next one, then to a public server. Raise it if your connection can stay down for a while.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentRejoin, "Scheduled Rejoin", "", [
+        {
+          id: "rejoin_schedule_type",
+          title: "Scheduled Rejoin Mode",
+          desc: "Choose whether the macro rejoins after a set number of hours or once per day at a specific time.",
+          type: {
+            name: "dropdown",
+            data: [
+              { label: "Every X Hours", value: "hours" },
+              { label: "Daily Time", value: "daily" },
+            ],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "rejoin_every",
+          title: "Rejoin Every X hours",
+          desc: "How often the macro should rejoin when Scheduled Rejoin Mode is Every X Hours. Set it as 0 to disable interval rejoining.",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 4,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "rejoin_at_time",
+          title: "Rejoin At Time",
+          desc: "Daily time for scheduled rejoin when Scheduled Rejoin Mode is Daily Time. Use 24-hour HH:MM format, for example 00:00.",
+          type: {
+            name: "textbox",
+            inputType: "string",
+            inputLimit: 5,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "rejoin_timezone",
+          title: "Rejoin Time Zone",
+          desc: "Choose whether Rejoin At Time is interpreted as your local time or UTC.",
+          type: {
+            name: "dropdown",
+            data: [
+              { label: "Local", value: "local" },
+              { label: "UTC", value: "utc" },
+            ],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentRejoin, "Failsafes", "", [
+        {
+          id: "max_cannon_attempts",
+          title: "Max Cannon Attempts Before Rejoin",
+          desc: "Number of attempts the macro will try to reach the cannon before rejoining.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "cannon_hive_resync_attempts",
+          title: "Cannon Misses Before Hive Slot Recheck",
+          desc: "After this many missed cannon attempts, reset to the hive, recheck the hive slot number, and try the cannon again before rejoining. Set to 0 to disable.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "inactive_honey_reset",
+          title: "Inactive Honey Reset (Beta)",
+          desc: "Reset and retry when the macro detects no active honey gain for an extended period while gathering or converting.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "auto_stop_after",
+          title: "Stop Macro After X Hours",
+          desc: "Automatically stop the macro after this many hours from startup. Set to 0 to disable auto stop.",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 5,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      parentRejoin.insertAdjacentHTML("beforeend", `
+        <div id="fallback-private-servers-modal" class="modal-overlay" style="display:none;">
+          <div class="modal-dialog poppins-regular" style="max-width:42rem;">
+            <h3>Fallback Private Servers</h3>
+            <p>Fuzzy tries these in order after the main private server fails. Leave a field blank to skip it.</p>
+            <label for="fallback_private_server_link_1">Backup server 1</label>
+            <input id="fallback_private_server_link_1" class="poppins-regular textbox" type="text" style="width:100%; box-sizing:border-box; margin:0.4rem 0 1rem;" data-input-type="string">
+            <label for="fallback_private_server_link_2">Backup server 2</label>
+            <input id="fallback_private_server_link_2" class="poppins-regular textbox" type="text" style="width:100%; box-sizing:border-box; margin:0.4rem 0 1rem;" data-input-type="string">
+            <label for="fallback_private_server_link_3">Backup server 3</label>
+            <input id="fallback_private_server_link_3" class="poppins-regular textbox" type="text" style="width:100%; box-sizing:border-box; margin:0.4rem 0;" data-input-type="string">
+            <div class="modal-actions">
+              <button type="button" id="cancel-fallback-private-servers-button" class="btn-cancel">Cancel</button>
+              <button type="button" id="save-fallback-private-servers-button" class="btn-confirm">Save Servers</button>
+            </div>
+          </div>
+        </div>
+      `);
+    </script>
+  </div>
+  <div id="other" class="standard-container sub-tab-panel" style="display: none">
+    <script>
+      const parentOther = document.getElementById("other");
+      buildStandardContainer(parentOther, "Display", "", [
+        {
+          id: "use_1080p_virtual_display",
+          title: "Use 1080p virtual display",
+          desc: "Runs Roblox with a 1920×1080 game area for consistent detection on Retina screens. Requires macOS 13 or later. Changes apply the next time you start the macro.",
+          type: { name: "checkbox", triggerFunction: saveGeneralTriggerFunction },
+        },
+      ]);
+      document.getElementById("use_1080p_virtual_display").setAttribute("aria-label", "Use 1080p virtual display");
+      buildStandardContainer(parentOther, "Beesmas", "", [
+        {
+          id: "beesmas_override",
+          title: "Force Beesmas On",
+          desc: "Treat Beesmas as running. Normally the macro checks online whether Beesmas is on each time it starts. Changes apply the next time you start the macro.",
+          type: { name: "checkbox", triggerFunction: saveGeneralTriggerFunction },
+        },
+      ]);
+      buildStandardContainer(parentOther, "Appearance", "", [
+        {
+          id: "gui_theme",
+          title: "GUI Theme",
+          desc: "Colors for the macro and its reports",
+          type: {
+            name: "dropdown",
+            data: GUI_THEMES,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        ...[
+          ["gui_color_background", "Background", "The page background"],
+          ["gui_color_section", "Sections", "Cards and sections"],
+          ["gui_color_object", "Buttons and Inputs", "Inputs, dropdowns and hover highlights"],
+          ["gui_color_text", "Text", "Main text color"],
+          ["gui_color_accent", "Accent", "Buttons, tabs and highlights"],
+          ["gui_color_accent_text", "Accent Text", "Text on accent-colored buttons"],
+        ].map(([id, title, desc]) => ({
+          id,
+          title: `Custom ${title}`,
+          desc: `${desc}. Shows the colour of the theme in use; editing it switches to Custom Theme. Six hex digits, like #00FF00.`,
+          type: { name: "color", label: title },
+        })),
+        {
+          id: "hidden_patterns",
+          title: "Hidden Patterns",
+          desc: "Patterns selected here are hidden from the pattern selector in the Gather tab. A field that already uses a hidden pattern keeps showing it.",
+          type: {
+            name: "dropdown",
+            multiple: true,
+            data: [],
+            length: 16,
+            triggerFunction: "saveHiddenPatterns(this)",
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentOther, "Keybinds", "", [
+        {
+          id: "start_keybind",
+          title: "Start Macro Keybind",
+          desc: "Click to record. Clear removes the keybind; Backspace/Delete clears while recording.",
+          type: {
+            name: "keybind",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "pause_keybind",
+          title: "Pause/Resume Macro Keybind",
+          desc: "Click to record. Clear removes the keybind; Backspace/Delete clears while recording.",
+          type: {
+            name: "keybind",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "stop_keybind",
+          title: "Stop Macro Keybind",
+          desc: "Click to record. Clear removes the keybind; Backspace/Delete clears while recording.",
+          type: {
+            name: "keybind",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          title: "Tool Keybinds",
+          desc: "Optional hotkeys for starting tools while the macro is stopped.",
+          type: {
+            name: "separator",
+          },
+        },
+        {
+          id: "hotbar_buff_start_keybind",
+          title: "Start Hotbar Buff Keybind",
+          desc: "Click to record. Clear removes the keybind; Backspace/Delete clears while recording.",
+          type: {
+            name: "keybind",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "autoclicker_keybind",
+          title: "Start Auto Clicker Keybind",
+          desc: "Click to record. Clear removes the keybind; Backspace/Delete clears while recording.",
+          type: {
+            name: "keybind",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "auto_gifted_basic_bee_start_keybind",
+          title: "Start Auto Gifted Basic Bee Keybind",
+          desc: "Click to record. Clear removes the keybind; Backspace/Delete clears while recording.",
+          type: {
+            name: "keybind",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentOther, "Updates", "", [
+        {
+          id: "update_channel",
+          title: "Update Channel",
+          desc: "Stable: Only stable releases | Beta: Includes pre-release versions for testing",
+          type: {
+            name: "dropdown",
+            data: [
+              { label: "Stable Releases", value: "stable" },
+              { label: "Beta Releases", value: "beta" },
+            ],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "beta_update_row",
+          title: "Beta Testing",
+          desc: "Enter a 7-character code from the Fuzzy Macro Discord server.",
+          type: {
+            name: "textbox_with_button",
+            inputId: "beta_commit_hash",
+            inputType: "string",
+            inputLimit: 7,
+            inputWidth: 12,
+            buttonId: "beta_update_button",
+            buttonText: "Test Update",
+            buttonWidth: 7,
+            buttonFunction: "triggerBetaUpdate()",
+          },
+        },
+      ]);
+
+      // Standalone Export Debug container
+      buildStandardContainer(parentOther, "Export Debug", "Create a zip with your exported profile, recent logs, macOS + macro version and chip info.", [
+        {
+          id: "export_debug_button",
+          title: "Export Debug Folder",
+          desc: "Downloads a zip containing your profile export, recent logs, and system info.",
+          type: {
+            name: "button",
+            text: "Export Debug Folder",
+            triggerFunction: "exportDebugFolder()",
+          },
+        },
+        {
+          id: "open_log_folder_button",
+          title: "Open Log Folder",
+          desc: "Opens the folder with errors.log, which records crashes with their stack trace. Send it to support if the macro crashes.",
+          type: {
+            name: "button",
+            text: "Open Log Folder",
+            triggerFunction: "openLogFolder()",
+          },
+        },
+      ]);
+    </script>
+  </div>
+  <div id="discord" class="standard-container sub-tab-panel" style="display: none">
+    <script>
+      const parentDiscord = document.getElementById("discord");
+      buildStandardContainer(parentDiscord, "Setup", "", [
+        {
+          id: "discord_delivery_mode",
+          title: "Delivery Mode",
+          desc: "Choose how Discord messages and commands are handled",
+          type: {
+            name: "dropdown",
+            data: [
+              { label: "Use Both", value: "both" },
+              { label: "Use Webhook", value: "webhook" },
+              { label: "Use Discord Bot", value: "discord_bot" },
+            ],
+            length: 13,
+            triggerFunction: "saveSetting(this, 'general'); updateDiscordUniversalRouteText();",
+          },
+        },
+        {
+          id: "discord_bot_token",
+          title: "Discord Bot Token",
+          desc: "Required for Discord bot commands and bot channel delivery",
+          type: {
+            name: "textbox",
+            inputType: "string",
+            length: 13,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "webhook_link",
+          title: "Webhook URL",
+          desc: "Default webhook used for Discord notifications.",
+          type: {
+            name: "textbox",
+            inputType: "string",
+            length: 13,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "discord_channel_id",
+          title: "Channel ID",
+          desc: "Default Discord channel ID used for bot-sent notifications.",
+          type: {
+            name: "textbox",
+            inputType: "string",
+            length: 13,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "discord_rich_presence",
+          title: "Enable Discord Rich Presence",
+          desc: "Show macro activity in your Discord status",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      // discord.py 1.x (macOS 10.12-10.14) has no slash commands, so the bot uses a text prefix
+      eel.usesLegacyDiscordBot()((legacy) => {
+        if (!legacy) return;
+        const tokenDesc = document.getElementById("discord_bot_token")?.closest("form")?.querySelector("p");
+        if (tokenDesc) tokenDesc.innerHTML += "<br><strong>On this macOS version, bot commands use <code>fuzz!</code> instead of <code>/</code>, e.g. <code>fuzz!status</code>. To use <code>fuzz!</code> commands in guild channels, enable Message Content access in the Discord Developer Portal. If it is unavailable, mention the bot instead, e.g. <code>@Bot status</code>.</strong>";
+      });
+
+      buildStandardContainer(parentDiscord, "Messages", "", [
+        {
+          id: "send_screenshot",
+          title: "Send Screenshots",
+          desc: "Attach game screenshots to Discord notifications",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "only_send_hourly_report",
+          title: "Only Send Reports",
+          desc: "Disable regular status messages and only send hourly and session reports",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "live_gather_report",
+          title: "Enable Live Gather Report",
+          desc: "While gathering, edit one Discord message every 10 seconds with a honey/pollen screenshot and gather timer",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "webhook_time_format",
+          title: "Webhook Time Format",
+          desc: "Choose between 12-hour (AM/PM) or 24-hour format for webhook message timestamps",
+          type: {
+            name: "dropdown",
+            data: [12, 24],
+            default: 24,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentDiscord, "Hourly / Session Reports", "", [
+        {
+          id: "hourly_report_time_format",
+          title: "Report Time Format",
+          desc: "Choose between 12-hour (AM/PM) or 24-hour format for report time labels",
+          type: {
+            name: "dropdown",
+            data: [12, 24],
+            default: 24,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "item_monitor",
+          title: "Item Monitor",
+          desc: "Track loot toast popups (+N Item) and send a separate Item Monitor report with hourly/session reports",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "hourly_report_uptime_buffs",
+          title: "Buff Uptime Options",
+          desc: "Choose buff keys to track for hourly/session reports. The first 16 selected keys are visible.",
+          type: {
+            name: "multicheck",
+            variant: "report-buffs",
+            data: hourlyReportUptimeBuffOptions,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "hourly_report_hourly_buffs",
+          title: "Side Buff Options",
+          desc: "Choose up to 5 buff keys to show in the report side Buffs card.",
+          type: {
+            name: "multicheck",
+            variant: "report-buffs compact",
+            maxSelections: 5,
+            data: hourlyReportSideBuffOptions,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentDiscord, "Discord Pings", "", [
+        {
+          id: "discord_user_id",
+          title: "Discord User ID",
+          desc: "Used by the ping options below",
+          type: {
+            name: "textbox",
+            inputType: "string",
+            length: 13,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_critical_errors",
+          title: "Critical Errors",
+          desc: "Ping when a critical error is sent",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_disconnects",
+          title: "Disconnects",
+          desc: "Ping for reconnect and connection issue messages",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_character_deaths",
+          title: "Character Deaths",
+          desc: "Ping when the character dies",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_emergency_balloon",
+          title: "Emergency Balloon",
+          desc: "Ping when the balloon hasn't been converted by the emergency time. Pings once per balloon",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "emergency_balloon_mins",
+          title: "Emergency Balloon Time (m)",
+          desc: "Minutes since the last balloon conversion before the emergency ping is sent. Set it higher than the convert balloon settings",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_hourly_reports",
+          title: "Hourly/Session Reports",
+          desc: "Ping when hourly or session reports are sent",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_unusual_sprouts",
+          title: "Unusual Sprouts",
+          desc: "Ping when a Moon, Gummy, Festive, Epic, Legendary, or Supreme Sprout announcement is detected",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_windy_bee",
+          title: "Windy Bee Spawn",
+          desc: "Ping when a Windy Bee spawn announcement is detected",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_gummyball",
+          title: "Gummyball Buff",
+          desc: "Ping when the 8x or 9x Gummyball buff appears",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_guiding_star",
+          title: "Guiding Star",
+          desc: "Ping when a Guiding Star field announcement is detected",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "ping_night",
+          title: "Night Detected",
+          desc: "Ping when night is detected (requires Stinger Hunt)",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(parentDiscord, "Stream", "Stream your screen in real-time through a web link. Visit the gitbook for instructions on how to set it up", [
+        {
+          id: "enable_stream",
+          title: "Enable Stream",
+          desc: "Automatically start streaming",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "pin_stream_url",
+          title: "Pin Stream URL in Discord",
+          desc: "Automatically pin the stream URL message in Discord when streaming starts.<br>Requires both Discord Bot and Webhook to be enabled",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      parentDiscord.insertAdjacentHTML("beforeend", `
+        <details class="model-downloads">
+          <summary>
+            <span>Advanced</span>
+            <span class="model-download-summary">Notification routes and bot command permissions</span>
+          </summary>
+          <div id="discord-advanced" class="model-download-content"></div>
+        </details>
+      `);
+      const advancedDiscord = document.getElementById("discord-advanced");
+
+      const discordRouteCategories = [
+        ["route_macro_status", "Macro", "Start, stop, pause, resume, and profile messages"],
+        ["route_reports", "Reports", "Hourly and final report images"],
+        ["route_gathering", "Gathering", "Gathering start/end and live gather report messages"],
+        ["route_combat", "Combat", "Mobs, Vicious Bee, and character death messages"],
+        ["route_activities", "Activities", "Boosts, crafting, stickers, ant challenge, planters, quests, collectibles, and conversion messages"],
+        ["route_system", "System", "Critical errors, disconnects, stream messages, and other system-level notices"],
+      ];
+
+      buildStandardContainer(
+        advancedDiscord,
+        "Notification Routes",
+        "Optional category-specific destinations. Paste a Discord webhook URL or a Discord channel ID.",
+        discordRouteCategories.map(([routeId, title, desc]) => ({
+          id: routeId,
+          title,
+          desc,
+          type: {
+            name: "textbox",
+            inputType: "string",
+            length: 16,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        }))
+      );
+
+      const discordPermissionCategories = [
+        [
+          "discord_permission_public_info_ids",
+          "Public Info",
+          "Commands: /help, /ping. Leave blank to let anyone use these commands.",
+        ],
+        [
+          "discord_permission_observation_ids",
+          "Observation",
+          "Commands: /battery, /logs, /nectar, /screenshot, /status, /tasklist, /plantertimers, /cooldowns.",
+        ],
+        [
+          "discord_permission_macro_control_ids",
+          "Macro Control",
+          "Commands: /start, /stop, /pause, /resume, /rejoin, /skipserver.",
+        ],
+        [
+          "discord_permission_task_interrupt_ids",
+          "Task Interrupts",
+          "Commands: /amulet, /collectplanter, /planterreset, /reroll, /reset, /skip, /usehotbar.",
+        ],
+        [
+          "discord_permission_configuration_ids",
+          "Configuration",
+          "Commands that view or change macro configuration, fields, quests, collectibles, mobs, hive slot, shift lock, and macro mode.",
+        ],
+        [
+          "discord_permission_system_action_ids",
+          "System Actions",
+          "Commands: /close, /mute, /unmute.",
+        ],
+        [
+          "discord_permission_profile_access_ids",
+          "Profile Access",
+          "Commands: /privateserver, /swapprofile.",
+        ],
+        [
+          "discord_permission_streaming_ids",
+          "Streaming",
+          "Commands: /stream, /streamurl.",
+        ],
+        [
+          "discord_permission_reports_ids",
+          "Reports",
+          "Commands: /hourlyreport, /session, /vicstats.",
+        ],
+      ];
+
+      buildStandardContainer(
+        advancedDiscord,
+        "Bot Command Permissions",
+        "Enter Discord user IDs allowed to use each category. Separate multiple IDs with commas. Leave a category blank to allow everyone.",
+        discordPermissionCategories.map(([id, title, desc]) => ({
+          id,
+          title,
+          desc,
+          type: {
+            name: "textbox",
+            inputType: "string",
+            length: 18,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        }))
+      );
+
+    </script>
+  </div>
+
+
+
+  <div id="profiles" class="standard-container sub-tab-panel" style="display: none">
+    <style>
+      .profile-card {
+        background: var(--surface);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+      }
+
+      .profile-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .profile-card-title {
+        color: var(--text-main);
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .profile-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .profile-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--surface-hover);
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+      }
+
+      .profile-item:hover {
+        border-color: var(--primary);
+      }
+
+      .profile-item.active {
+        border-color: var(--primary-hover);
+        background: var(--surface);
+      }
+
+      .profile-item-name {
+        color: var(--text-main);
+      }
+    </style>
+    <div class="poppins-medium" style="display: block; justify-items: unset; padding-top: 0rem">
+      <h2>Profile Management</h2>
+      <p style="font-weight: 500; font-size: 1rem">
+        Save and switch between different configuration profiles. Each profile
+        stores your settings, field configurations, and task priorities
+        separately.
+      </p>
+      <div class="seperator"></div>
+
+      <!-- Current Profile Section -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <span class="profile-card-title">Current Profile</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem">
+          <span id="current-profile-display"
+            style="color: var(--primary); font-size: 1.2rem; font-weight: 600">Loading...</span>
+        </div>
+      </div>
+
+      <!-- Switch Profile Section -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <span class="profile-card-title">Switch Profile</span>
+        </div>
+        <p style="color: var(--text-dim); margin-bottom: 1rem; font-size: 0.9rem">
+          Select a profile to switch to. Your current settings will be saved
+          automatically.
+        </p>
+        <div class="profile-list" id="profile-list" style="max-height: 400px;">
+          <!-- Profile items will be loaded dynamically -->
+        </div>
+      </div>
+
+      <!-- Create Profile Section -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <span class="profile-card-title">Create New Profile</span>
+        </div>
+        <p style="color: #b9bbbe; margin-bottom: 1rem; font-size: 0.9rem">
+          Create a new profile based on default settings.
+        </p>
+        <div style="display: flex; gap: 0.75rem; align-items: center">
+          <input type="text" id="new-profile-name" class="profile-input" placeholder="Enter profile name..." />
+          <button class="purple-button" onclick="createNewProfile()">
+            Create Profile
+          </button>
+        </div>
+        <div id="create-profile-status"></div>
+      </div>
+
+      <!-- Duplicate Profile Section -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <span class="profile-card-title">Duplicate Profile</span>
+        </div>
+        <p style="color: #b9bbbe; margin-bottom: 1rem; font-size: 0.9rem">
+          Create a copy of an existing profile with a new name.
+        </p>
+        <div style="
+                display: flex;
+                gap: 0.75rem;
+                align-items: center;
+                flex-wrap: wrap;
+              ">
+          <select id="duplicate-source-profile" class="profile-input" style="width: 150px">
+            <!-- Options will be loaded dynamically -->
+          </select>
+          <span style="color: #b9bbbe">→</span>
+          <input type="text" id="duplicate-new-name" class="profile-input" placeholder="New profile name..." />
+          <button class="purple-button" onclick="duplicateExistingProfile()">
+            Duplicate
+          </button>
+        </div>
+        <div id="duplicate-profile-status"></div>
+      </div>
+
+      <!-- Export Profile Section -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <span class="profile-card-title">Export Profile</span>
+        </div>
+        <p style="color: #b9bbbe; margin-bottom: 1rem; font-size: 0.9rem">
+          Export a profile to a JSON file for backup or sharing.
+        </p>
+        <div style="
+                display: flex;
+                gap: 0.75rem;
+                align-items: center;
+                flex-wrap: wrap;
+              ">
+          <select id="export-profile-select" class="profile-input" style="width: 200px">
+            <!-- Options will be loaded dynamically -->
+          </select>
+          <button class="purple-button" onclick="exportProfile()">
+            Export Profile
+          </button>
+        </div>
+        <div id="export-profile-status"></div>
+      </div>
+
+      <!-- Import Profile Section -->
+      <div class="profile-card">
+        <div class="profile-card-header">
+          <span class="profile-card-title">Import Profile</span>
+        </div>
+        <p style="color: #b9bbbe; margin-bottom: 1rem; font-size: 0.9rem">
+          Import a profile from a JSON file. Choose a new name for the imported
+          profile.
+        </p>
+        <div style="
+                display: flex;
+                gap: 0.75rem;
+                align-items: center;
+                flex-wrap: wrap;
+              ">
+          <input type="file" id="import-profile-file" accept=".json" style="display: none" />
+          <button class="profile-btn profile-btn-secondary"
+            onclick="document.getElementById('import-profile-file').click()">
+            Choose File
+          </button>
+          <span id="import-file-name" style="color: #b9bbbe; font-size: 0.9rem">No file selected</span>
+        </div>
+        <div id="import-profile-status"></div>
+      </div>
+
+      <!-- Import Profile Modal -->
+      <div id="import-profile-modal" style="
+              display: none;
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(0, 0, 0, 0.7);
+              z-index: 1000;
+              justify-content: center;
+              align-items: center;
+            ">
+        <div style="
+                background: #36393f;
+                border-radius: 8px;
+                padding: 2rem;
+                width: 400px;
+                max-width: 90%;
+                border: 1px solid #4f545c;
+              ">
+          <h3 style="color: #dcddde; margin: 0 0 1rem 0; font-size: 1.2rem">
+            Import Profile
+          </h3>
+
+          <div style="margin-bottom: 1rem">
+            <label style="
+                    color: #b9bbbe;
+                    display: block;
+                    margin-bottom: 0.5rem;
+                    font-size: 0.9rem;
+                  ">
+              Selected file:
+              <span id="modal-selected-file" style="color: #dcddde"></span>
+            </label>
+          </div>
+
+          <div style="margin-bottom: 1.5rem">
+            <label style="
+                    color: #b9bbbe;
+                    display: block;
+                    margin-bottom: 0.5rem;
+                    font-size: 0.9rem;
+                  ">
+              Profile name:
+            </label>
+            <input type="text" id="modal-profile-name" class="profile-input" placeholder="Enter profile name..."
+              style="width: 100%; box-sizing: border-box" />
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end">
+            <button class="profile-btn profile-btn-secondary" onclick="hideImportModal()">
+              Cancel
+            </button>
+            <button class="profile-btn profile-btn-primary" onclick="confirmImportProfile()">
+              Import Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>

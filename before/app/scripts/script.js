@@ -1,0 +1,2091 @@
+// Expose a function to reset the update button from Python
+window.updateButtonReset = function () {
+  const updateBtn = document.getElementById("update-btn");
+  if (updateBtn) {
+    updateBtn.classList.remove("active");
+    updateBtn.disabled = false;
+    updateBtn.innerText = "Check for Updates";
+  }
+};
+if (window.eel) eel.expose(window.updateButtonReset, 'updateButtonReset');
+
+window.updateProgress = function (percent, message) {
+  const progress = document.getElementById("update-progress");
+  const bar = document.getElementById("update-progress-bar");
+  const label = document.getElementById("update-progress-label");
+  const percentLabel = document.getElementById("update-progress-percent");
+  const updateBtn = document.getElementById("update-btn");
+
+  const value = Math.max(0, Math.min(100, Number(percent) || 0));
+  if (progress) progress.classList.remove("d-none");
+  if (bar) bar.style.width = `${value}%`;
+  if (label) label.textContent = message || "Updating";
+  if (percentLabel) percentLabel.textContent = `${Math.round(value)}%`;
+  if (updateBtn) {
+    updateBtn.classList.add("active");
+    updateBtn.disabled = true;
+    updateBtn.innerText = "Updating";
+  }
+};
+if (window.eel) eel.expose(window.updateProgress, "updateProgress");
+
+// Auto-update check functionality
+async function checkForUpdatesOnStartup() {
+  try {
+    // Check if auto-update checking is disabled
+    const isDisabled = await eel.getAutoUpdateCheckDisabled()();
+    if (isDisabled) {
+      console.log("Auto-update check is disabled");
+      return;
+    }
+
+    // Check for updates
+    const updateInfo = await eel.checkForUpdates()();
+    if (updateInfo && updateInfo.available) {
+      showUpdateModal(updateInfo);
+    }
+  } catch (error) {
+    console.error("Error checking for updates:", error);
+  }
+}
+
+function showUpdateModal(updateInfo) {
+  // Remove any existing modal
+  const existingModal = document.getElementById("update-notification-modal");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  // Create modal
+  const modal = document.createElement("div");
+  modal.id = "update-notification-modal";
+  modal.style.cssText = `
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background: #36393f;
+      border-radius: 8px;
+      padding: 2rem;
+      width: 400px;
+      max-width: 90%;
+      border: 1px solid #4f545c;
+    ">
+      <h3 style="color: #dcddde; margin: 0 0 1rem 0; font-size: 1.2rem">
+        Update Available
+      </h3>
+      
+      <p style="color: #b9bbbe; margin-bottom: 1.5rem; font-size: 0.95rem">
+        A new version of Fuzzy Macro is available!<br><br>
+        Current version: <strong style="color: #dcddde">${updateInfo.current_version}</strong><br>
+        Latest version: <strong style="color: #7289da">${updateInfo.latest_version}</strong>
+      </p>
+      
+      <div style="margin-bottom: 1.5rem">
+        <label style="color: #b9bbbe; display: flex; align-items: center; cursor: pointer; user-select: none;">
+          <input type="checkbox" id="dont-show-update-again" style="margin-right: 0.5rem; cursor: pointer;">
+          <span>Don't show this again</span>
+        </label>
+      </div>
+      
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end">
+        <button class="profile-btn profile-btn-secondary" onclick="closeUpdateModal()">
+          Close
+        </button>
+        <button class="profile-btn profile-btn-primary" onclick="startUpdate()">
+          Update Now
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+async function closeUpdateModal() {
+  const modal = document.getElementById("update-notification-modal");
+  if (!modal) return;
+
+  const dontShowCheckbox = document.getElementById("dont-show-update-again");
+  if (dontShowCheckbox && dontShowCheckbox.checked) {
+    try {
+      await eel.disableAutoUpdateCheck()();
+      console.log("Auto-update check disabled");
+    } catch (error) {
+      console.error("Error disabling auto-update check:", error);
+    }
+  }
+
+  modal.remove();
+}
+
+async function startUpdate() {
+  const modal = document.getElementById("update-notification-modal");
+  if (modal) {
+    modal.remove();
+  }
+
+  // Trigger the existing update function
+  const updateBtn = document.getElementById("update-btn");
+  if (updateBtn && !updateBtn.classList.contains("active")) {
+    purpleButtonToggle(updateBtn, ["Update", "Updating"]);
+    updateBtn.disabled = true;
+    window.updateProgress(0, "Starting update");
+    if (window.eel && typeof eel.update === "function") {
+      await eel.update();
+    }
+  }
+}
+
+// Ensure sidebar update button always works
+document.addEventListener("DOMContentLoaded", function () {
+  const updateBtn = document.getElementById("update-btn");
+  if (updateBtn) {
+    updateBtn.addEventListener("click", async function (event) {
+      if (!event.currentTarget.classList.contains("active")) {
+        purpleButtonToggle(event.currentTarget, ["Update", "Updating"]);
+        event.currentTarget.disabled = true;
+        window.updateProgress(0, "Starting update");
+        if (window.eel && typeof eel.update === "function") {
+          await eel.update();
+        }
+      }
+    });
+  }
+
+  // Check for updates on startup (with a small delay to ensure eel is ready)
+  setTimeout(() => {
+    checkForUpdatesOnStartup();
+  }, 1000);
+});
+//change the styling of the purple buttons
+//element: the purple button element
+//label: the text labels of the button [not-active-label, active-label]
+function purpleButtonToggle(element, labels) {
+  //check for active class
+  if (element.classList.contains("active")) {
+    element.innerText = labels[0];
+    element.classList.remove("active");
+    return labels[1];
+  }
+
+  element.innerText = labels[1];
+  element.classList.add("active");
+  return labels[0];
+}
+
+//get the value of input elements like checkboxes, dropdown and textboxes
+function getInputValueFromElement(ele) {
+  if (!ele) return "";
+  if (ele.tagName == "INPUT" && ele.type == "checkbox") {
+    return ele.checked;
+  } else if (ele.tagName == "INPUT" && ele.type == "text") {
+    const value = ele.value;
+    if (
+      !value &&
+      (ele.dataset.inputType == "float" || ele.dataset.inputType == "int")
+    )
+      return 0;
+    if (!value) return "";
+    if (ele.dataset.inputType == "int") return parseInt(value, 10);
+    if (ele.dataset.inputType == "float") return parseFloat(value);
+    return value;
+  } else if (ele.tagName == "DIV" && ele.className.includes("custom-select")) {
+    const value = getDropdownValue(ele);
+    if (Array.isArray(value)) return value;
+    return String(value).toLowerCase();
+  } else if (ele.tagName == "SELECT") {
+    return ele.value;
+  } else if (ele.tagName == "DIV" && ele.className.includes("multi-checklist")) {
+    return Array.from(ele.querySelectorAll("input[type='checkbox']:checked")).map((x) => x.value);
+  } else if (ele.tagName == "INPUT" && ele.type == "range") {
+    return ele.dataset.inputType == "float" ? parseFloat(ele.value) : parseInt(ele.value, 10);
+  } else if (ele.tagName == "DIV" && ele.className.includes("keybind-input")) {
+    return ele.dataset.keybind || "";
+  }
+}
+
+function getInputValue(id) {
+  const ele = document.getElementById(id);
+  if (!ele) {
+    console.error("Element not found:", id);
+    return "";
+  }
+  return getInputValueFromElement(ele);
+}
+
+async function loadSettings() {
+  return await eel.loadSettings()();
+}
+
+//result of the most recent loadAllSettings call, for pollers that shouldn't reread the settings files every tick
+let cachedSettings = {};
+
+async function loadAllSettings() {
+  cachedSettings = await eel.loadAllSettings()();
+  return cachedSettings;
+}
+
+// Refresh the currently visible tab content after backend-triggered profile swaps
+window.refreshCurrentTabContent = async function () {
+  try {
+    const activeSidebarTab = document.querySelector(".sidebar-item.active");
+    const activeMainTab = activeSidebarTab
+      ? activeSidebarTab.id.split("-")[0]
+      : "home";
+
+    if (activeMainTab === "home" && typeof loadTasks === "function") {
+      await loadTasks();
+      return true;
+    }
+
+    if (activeMainTab === "gather" && typeof switchGatherTab === "function") {
+      const activeGatherTab = document.querySelector(".gather-tab-item.active");
+      if (activeGatherTab) {
+        await switchGatherTab(activeGatherTab);
+      } else {
+        const defaultGatherTab = document.getElementById("field-1");
+        if (defaultGatherTab) await switchGatherTab(defaultGatherTab);
+      }
+      return true;
+    }
+
+    if (activeMainTab === "collect" && typeof loadCollect === "function") {
+      await loadCollect();
+      return true;
+    }
+
+    if (activeMainTab === "boost" && typeof switchBoostTab === "function") {
+      const activeBoostTab = document.querySelector(".boost-tab-item.active");
+      if (activeBoostTab) {
+        switchBoostTab(activeBoostTab);
+      } else {
+        const defaultBoostTab = document.getElementById("boost-hotbar");
+        if (defaultBoostTab) switchBoostTab(defaultBoostTab);
+      }
+      return true;
+    }
+
+    if (activeMainTab === "kill" && typeof switchKillTab === "function") {
+      const activeKillTab = document.querySelector(".kill-tab-item.active");
+      if (activeKillTab) {
+        switchKillTab(activeKillTab);
+      } else {
+        const defaultKillTab = document.getElementById("kill-settings");
+        if (defaultKillTab) switchKillTab(defaultKillTab);
+      }
+      return true;
+    }
+
+    if (activeMainTab === "quests" && typeof switchQuestsTab === "function") {
+      const activeQuestsTab = document.querySelector(".quests-tab-item.active");
+      if (activeQuestsTab) {
+        switchQuestsTab(activeQuestsTab);
+      } else {
+        const defaultQuestsTab = document.getElementById("quests-settings");
+        if (defaultQuestsTab) switchQuestsTab(defaultQuestsTab);
+      }
+      return true;
+    }
+
+    if (activeMainTab === "planters" && typeof loadPlanters === "function") {
+      await loadPlanters();
+      return true;
+    }
+
+    if (activeMainTab === "config") {
+      if (typeof switchConfigTab === "function") {
+        const activeConfigTab = document.querySelector(".config-tab-item.active");
+        if (activeConfigTab) {
+          await switchConfigTab(activeConfigTab);
+          return true;
+        }
+      }
+      if (typeof loadConfig === "function") {
+        await loadConfig();
+        return true;
+      }
+    }
+
+    if (activeMainTab === "tools" && typeof switchToolsTab === "function") {
+      const activeToolsTab = document.querySelector(".tools-tab-item.active");
+      if (activeToolsTab) {
+        switchToolsTab(activeToolsTab);
+      } else {
+        const defaultToolsTab = document.getElementById("tools-autoclicker");
+        if (defaultToolsTab) switchToolsTab(defaultToolsTab);
+      }
+      return true;
+    }
+
+    if (typeof loadTasks === "function") {
+      await loadTasks();
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error refreshing active tab content:", error);
+    return false;
+  }
+};
+if (window.eel) eel.expose(window.refreshCurrentTabContent, "refreshCurrentTabContent");
+//tell the user a setting wasn't saved and put the saved value back in its input,
+//so the GUI never shows a value the macro isn't using
+async function rejectSettingChange(id, reason) {
+  console.error(`Could not save ${id}: ${reason}`);
+  try {
+    const settings = await loadAllSettings();
+    if (id in settings) loadInputs({ [id]: settings[id] });
+  } catch (error) {
+    console.error(`Could not reload ${id}:`, error);
+  }
+  const title = document.getElementById(id)?.closest("form")?.querySelector("label")?.textContent?.trim();
+  alert(`${title || id} was not saved: ${reason}`);
+}
+
+//save one setting value; on failure the user is told and the saved value is shown again
+async function saveSettingValue(type, id, value) {
+  let result;
+  try {
+    result = await eel.applyMacroProfileChange(type, id, value)();
+  } catch (error) {
+    result = { ok: false, error: { reason: String(error?.errorText || error) } };
+  }
+  if (!result.ok) await rejectSettingChange(id, result.error.reason);
+  return result.ok;
+}
+
+//save the setting
+//element
+//type: setting type, eg: profile, general
+async function saveSetting(ele, type) {
+  //apply element binding (only for checkboxes)
+  if (ele.dataset && ele.dataset.inputBind) {
+    const bindTargetId = ele.dataset.inputBind;
+    const bindTarget = document.getElementById(bindTargetId);
+    if (ele.checked) {
+      bindTarget.checked = false;
+      try { await eel.saveProfileSetting(bindTargetId, false)(); } catch (e) { /* ignore */ }
+    }
+  }
+  const id = ele.dataset && ele.dataset.settingId ? ele.dataset.settingId : ele.id;
+  const value = ele.dataset && ele.dataset.settingId ? getInputValueFromElement(ele) : getInputValue(id);
+  // Enforce limits for specific settings before saving
+  let valueToSave = value;
+  if (type == "general" && (id === "max_cannon_attempts" || id === "cannon_hive_resync_attempts")) {
+    // Ensure numeric and clamp cannon retry settings.
+    let n = parseInt(value, 10);
+    const min = id === "cannon_hive_resync_attempts" ? 0 : 1;
+    if (Number.isNaN(n)) n = min;
+    if (n < min) n = min;
+    if (n > 25) n = 25;
+    const maxCannonInput = document.getElementById("max_cannon_attempts");
+    const hiveResyncInput = document.getElementById("cannon_hive_resync_attempts");
+    if (id === "cannon_hive_resync_attempts") {
+      const maxAttempts = parseInt(maxCannonInput?.value, 10);
+      if (!Number.isNaN(maxAttempts) && n >= maxAttempts) n = Math.max(0, maxAttempts - 1);
+    } else if (hiveResyncInput) {
+      let hiveResyncAttempts = parseInt(hiveResyncInput.value, 10);
+      if (Number.isNaN(hiveResyncAttempts)) hiveResyncAttempts = 0;
+      if (hiveResyncAttempts >= n) {
+        hiveResyncAttempts = Math.max(0, n - 1);
+        hiveResyncInput.value = hiveResyncAttempts;
+        try { await eel.saveGeneralSetting("cannon_hive_resync_attempts", hiveResyncAttempts)(); } catch (e) { /* ignore */ }
+      }
+    }
+    valueToSave = n;
+    // Update the displayed input to reflect clamped value
+    const inputEl = document.getElementById(id);
+    if (inputEl) inputEl.value = n;
+  }
+
+  if (
+    (ele.dataset.inputType == "int" || ele.dataset.inputType == "float") &&
+    !Number.isFinite(valueToSave)
+  ) {
+    await rejectSettingChange(id, "enter a number");
+    return false;
+  }
+
+  if ((type == "profile" || type == "general") && !(await saveSettingValue(type, id, valueToSave))) {
+    return false;
+  }
+
+  if (type == "profile") {
+    // Refresh priority/drag-list highlights after profile setting changes
+    try {
+      loadAllSettings().then((settings) => {
+        if (typeof refreshPriorityHighlights === "function") {
+          refreshPriorityHighlights(settings);
+        }
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (ele.dataset && ele.dataset.settingId) {
+    document.querySelectorAll(`[data-setting-id="${id}"]`).forEach(boundEle => {
+      if (boundEle === ele) return;
+      if (boundEle.type == "checkbox") {
+        boundEle.checked = ele.checked;
+      } else {
+        boundEle.value = ele.value;
+      }
+    });
+  }
+  return true;
+}
+
+function isPriorityLockedTask(taskId) {
+  return !!taskId && (String(taskId).startsWith("quest_") || taskId === "planters");
+}
+
+function normalizePriorityOrderGrouping(orderArray) {
+  if (!Array.isArray(orderArray)) return [];
+  const order = orderArray.slice();
+  const quests = order.filter((id) => String(id).startsWith("quest_"));
+  if (!quests.length) return order;
+  const firstQuestIdx = order.findIndex((id) => String(id).startsWith("quest_"));
+  const insertAt = order
+    .slice(0, firstQuestIdx)
+    .filter((id) => !String(id).startsWith("quest_")).length;
+  const withoutQuests = order.filter((id) => !String(id).startsWith("quest_"));
+  withoutQuests.splice(insertAt, 0, ...quests);
+  return withoutQuests;
+}
+
+function getPriorityLockAnchors(orderArray) {
+  const order = normalizePriorityOrderGrouping(orderArray);
+  let unlockedCount = 0;
+  let questAnchor = null;
+  let planterAnchor = null;
+  let questBeforePlanter = true;
+  let seenQuest = false;
+  let seenPlanter = false;
+
+  for (const id of order) {
+    if (String(id).startsWith("quest_")) {
+      if (questAnchor === null) {
+        questAnchor = unlockedCount;
+        if (seenPlanter) questBeforePlanter = false;
+      }
+      seenQuest = true;
+      continue;
+    }
+    if (id === "planters") {
+      if (planterAnchor === null) {
+        planterAnchor = unlockedCount;
+        if (!seenQuest) questBeforePlanter = false;
+      }
+      seenPlanter = true;
+      continue;
+    }
+    unlockedCount += 1;
+  }
+
+  return { order, questAnchor, planterAnchor, questBeforePlanter };
+}
+
+function createPriorityLockHeader(group, title, detail) {
+  const header = document.createElement("div");
+  header.className = "priority-lock-header";
+  header.dataset.lockGroup = group;
+  header.innerHTML = `
+    <span class="priority-lock-badge">LOCKED</span>
+    <div class="priority-lock-copy">
+      <strong>${title}</strong>
+      <span>${detail}</span>
+    </div>
+  `;
+  return header;
+}
+
+function storePriorityLockAnchors(container, orderArray) {
+  if (!container) return getPriorityLockAnchors(orderArray);
+  const anchors = getPriorityLockAnchors(orderArray);
+  const questIds = anchors.order.filter((id) => String(id).startsWith("quest_"));
+  container.dataset.questAnchor =
+    anchors.questAnchor === null || anchors.questAnchor === undefined
+      ? ""
+      : String(anchors.questAnchor);
+  container.dataset.planterAnchor =
+    anchors.planterAnchor === null || anchors.planterAnchor === undefined
+      ? ""
+      : String(anchors.planterAnchor);
+  container.dataset.questBeforePlanter = anchors.questBeforePlanter ? "true" : "false";
+  container.dataset.lockedQuestIds = JSON.stringify(questIds);
+  container.dataset.hasPlanters = anchors.order.includes("planters") ? "true" : "false";
+  return anchors;
+}
+
+function getPriorityLockAnchorValues(container) {
+  const questAnchor =
+    container.dataset.questAnchor === "" || container.dataset.questAnchor == null
+      ? null
+      : Number(container.dataset.questAnchor);
+  const planterAnchor =
+    container.dataset.planterAnchor === "" || container.dataset.planterAnchor == null
+      ? null
+      : Number(container.dataset.planterAnchor);
+  const questBeforePlanter = container.dataset.questBeforePlanter !== "false";
+  let questIds = [];
+  try {
+    questIds = JSON.parse(container.dataset.lockedQuestIds || "[]");
+  } catch (e) {
+    questIds = [];
+  }
+  if (!Array.isArray(questIds)) questIds = [];
+  const hasPlanters = container.dataset.hasPlanters === "true";
+  return { questAnchor, planterAnchor, questBeforePlanter, questIds, hasPlanters };
+}
+
+function mergePriorityOrderWithLocks(unlockedIds, lockState) {
+  const {
+    questAnchor,
+    planterAnchor,
+    questBeforePlanter,
+    questIds,
+    hasPlanters,
+  } = lockState;
+  const order = [];
+  let unlockedIndex = 0;
+  let questsInserted = !questIds.length;
+  let planterInserted = !hasPlanters;
+
+  const insertQuests = () => {
+    order.push(...questIds);
+    questsInserted = true;
+  };
+  const insertPlanter = () => {
+    order.push("planters");
+    planterInserted = true;
+  };
+  const maybeInsertLocked = () => {
+    const atQuest =
+      !questsInserted && questAnchor !== null && unlockedIndex === questAnchor;
+    const atPlanter =
+      !planterInserted &&
+      planterAnchor !== null &&
+      unlockedIndex === planterAnchor;
+    if (atQuest && atPlanter) {
+      if (questBeforePlanter) {
+        insertQuests();
+        insertPlanter();
+      } else {
+        insertPlanter();
+        insertQuests();
+      }
+    } else if (atQuest) {
+      insertQuests();
+    } else if (atPlanter) {
+      insertPlanter();
+    }
+  };
+
+  while (unlockedIndex < unlockedIds.length) {
+    maybeInsertLocked();
+    order.push(unlockedIds[unlockedIndex]);
+    unlockedIndex += 1;
+  }
+  maybeInsertLocked();
+  if (!questsInserted) insertQuests();
+  if (!planterInserted) insertPlanter();
+  return order;
+}
+
+function reapplyPriorityLockedPositions(container) {
+  if (!container || container.id !== "task_priority_order-container") return;
+
+  const {
+    questAnchor,
+    planterAnchor,
+    questBeforePlanter,
+    questIds,
+    hasPlanters,
+  } = getPriorityLockAnchorValues(container);
+
+  const unlocked = [
+    ...container.querySelectorAll(".drag-item:not(.priority-locked)"),
+  ];
+  const questHeader = container.querySelector(
+    '.priority-lock-header[data-lock-group="quest"]'
+  );
+  const planterHeader = container.querySelector(
+    '.priority-lock-header[data-lock-group="planter"]'
+  );
+
+  const fragment = document.createDocumentFragment();
+  let questsInserted = !questIds.length || !questHeader;
+  let planterInserted = !hasPlanters || !planterHeader;
+  let unlockedIndex = 0;
+
+  const insertQuests = () => {
+    if (questHeader) fragment.appendChild(questHeader);
+    questsInserted = true;
+  };
+  const insertPlanter = () => {
+    if (planterHeader) fragment.appendChild(planterHeader);
+    planterInserted = true;
+  };
+  const maybeInsertLocked = () => {
+    const atQuest =
+      !questsInserted && questAnchor !== null && unlockedIndex === questAnchor;
+    const atPlanter =
+      !planterInserted &&
+      planterAnchor !== null &&
+      unlockedIndex === planterAnchor;
+    if (atQuest && atPlanter) {
+      if (questBeforePlanter) {
+        insertQuests();
+        insertPlanter();
+      } else {
+        insertPlanter();
+        insertQuests();
+      }
+    } else if (atQuest) {
+      insertQuests();
+    } else if (atPlanter) {
+      insertPlanter();
+    }
+  };
+
+  while (unlockedIndex < unlocked.length) {
+    maybeInsertLocked();
+    fragment.appendChild(unlocked[unlockedIndex]);
+    unlockedIndex += 1;
+  }
+  maybeInsertLocked();
+  if (!questsInserted) insertQuests();
+  if (!planterInserted) insertPlanter();
+
+  container.appendChild(fragment);
+}
+
+function buildPriorityOrderFromContainer(container) {
+  if (!container) return [];
+  if (typeof reapplyPriorityLockedPositions === "function") {
+    reapplyPriorityLockedPositions(container);
+  }
+  const unlockedIds = [
+    ...container.querySelectorAll(".drag-item:not(.priority-locked)"),
+  ]
+    .map((item) => item.dataset.id)
+    .filter(Boolean);
+  return mergePriorityOrderWithLocks(
+    unlockedIds,
+    getPriorityLockAnchorValues(container)
+  );
+}
+
+// Update enabled/disabled state for all drag items based on settings
+function refreshPriorityHighlights(settings) {
+  if (!settings) return;
+  const items = document.querySelectorAll('.drag-item[data-id]');
+  items.forEach((item) => {
+    const taskId = item.dataset.id;
+    let enabled = true;
+    try {
+      if (typeof window._isTaskEnabledForSettings === 'function') {
+        enabled = window._isTaskEnabledForSettings(taskId, settings);
+      }
+    } catch (e) {
+      enabled = true;
+    }
+    if (enabled) {
+      item.classList.remove('disabled');
+    } else {
+      item.classList.add('disabled');
+    }
+  });
+}
+
+//returns a object based on the settings
+//proprties: an array of property names
+//note: element corresponding to the property must have the same id as that property
+function generateSettingObject(properties) {
+  let out = {};
+  properties.forEach((x) => {
+    out[x] = getInputValue(x);
+  });
+  return out;
+}
+
+function loadDragListOrder(dragListElement, orderArray, settings) {
+  if (!orderArray || !Array.isArray(orderArray)) return;
+
+  const container = dragListElement.querySelector(".drag-list-container");
+  if (!container) return;
+
+  // Reset priority search to avoid cached filters when reloading settings
+  if (dragListElement.id === "task_priority_order") {
+    const searchInput = document.getElementById("priority-search-input");
+    if (searchInput) searchInput.value = "";
+  }
+
+  // Clear existing items
+  container.innerHTML = "";
+
+  const isPriorityList = dragListElement.id === "task_priority_order";
+  const lockAnchors = isPriorityList
+    ? storePriorityLockAnchors(container, orderArray)
+    : { order: orderArray.slice() };
+  const renderOrder = lockAnchors.order;
+
+  // Helper function to check if a task is enabled
+  function isTaskEnabled(taskId, settings) {
+    if (taskId.startsWith("gather_")) {
+      const fieldName = taskId.replace("gather_", "").replace("_", " ");
+      // Check if this field is enabled
+      if (settings.fields_enabled && settings.fields) {
+        for (let i = 0; i < settings.fields_enabled.length; i++) {
+          if (settings.fields_enabled[i] && settings.fields[i] === fieldName) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    if (taskId.startsWith("collect_")) {
+      const collectName = taskId.replace("collect_", "");
+      // Handle special cases
+      if (collectName === "sprouts") {
+        return settings.sprouts_enable || false;
+      }
+      if (collectName === "sticker_sprout") {
+        return settings.sticker_sprout_watch || false;
+      }
+      if (collectName === "sticker_printer") {
+        return settings.sticker_printer || false;
+      }
+      if (collectName === "sticker_stack") {
+        return settings.sticker_stack || false;
+      }
+      // Regular collect items
+      return settings[collectName] || false;
+    }
+
+    if (taskId.startsWith("kill_")) {
+      const killName = taskId.replace("kill_", "");
+      return settings[killName] || false;
+    }
+
+    if (taskId.startsWith("quest_")) {
+      const questName = taskId.replace("quest_", "").replace("_", "_");
+      return settings[questName + "_quest"] || false;
+    }
+
+    // Special tasks
+    if (taskId === "mondo_buff") {
+      return settings.mondo_buff || false;
+    }
+    if (taskId === "stinger_hunt") {
+      return settings.stinger_hunt || false;
+    }
+    if (taskId === "auto_field_boost") {
+      return settings.Auto_Field_Boost || settings.auto_field_boost || false;
+    }
+    if (taskId === "ant_challenge") {
+      return settings.ant_challenge || false;
+    }
+    if (taskId === "blender") {
+      return settings.blender_enable || settings.blender || false;
+    }
+    if (taskId === "planters") {
+      const mode = Number(settings.planters_mode);
+      return settings.planters || (Number.isFinite(mode) && mode > 0);
+    }
+
+    return false;
+  }
+
+  // Helper function to get category
+  function getCategory(taskId) {
+    if (taskId.startsWith("gather_")) return "gather";
+    if (taskId.startsWith("collect_")) return "collect";
+    if (taskId.startsWith("kill_")) return "kill";
+    if (taskId.startsWith("quest_")) return "quest";
+    return "special";
+  }
+
+  // Helper function to get category badge
+  function getCategoryBadge(category) {
+    const badges = {
+      gather: "GATHER",
+      collect: "COLLECT",
+      kill: "KILL",
+      quest: "QUEST",
+      special: "SPECIAL",
+    };
+    return badges[category] || "";
+  }
+
+  // Exposed so other code can update enabled/disabled states
+  window._isTaskEnabledForSettings = (taskId, settingsObj) =>
+    Boolean(taskId) && isTaskEnabled(taskId, settingsObj);
+
+  // Create items in the specified order
+  let questHeaderInserted = false;
+  let planterHeaderInserted = false;
+
+  renderOrder.forEach((taskId) => {
+    let taskName = taskId; // Default to taskId if not found in map
+
+    // Convert task ID to display name
+    const displayNames = {
+      gather_pine_tree: "Gather: Pine Tree",
+      gather_sunflower: "Gather: Sunflower",
+      gather_dandelion: "Gather: Dandelion",
+      gather_mushroom: "Gather: Mushroom",
+      gather_blue_flower: "Gather: Blue Flower",
+      gather_clover: "Gather: Clover",
+      gather_strawberry: "Gather: Strawberry",
+      gather_spider: "Gather: Spider",
+      gather_bamboo: "Gather: Bamboo",
+      gather_cactus: "Gather: Cactus",
+      gather_rose: "Gather: Rose",
+      gather_pineapple: "Gather: Pineapple",
+      gather_pumpkin: "Gather: Pumpkin",
+      gather_coconut: "Gather: Coconut",
+      gather_hive_hub: "Gather: Hive Hub",
+      gather_pepper: "Gather: Pepper",
+      gather_mountain_top: "Gather: Mountain Top",
+      gather_stump: "Gather: Stump",
+      collect_wealth_clock: "Collect: Wealth Clock",
+      collect_blueberry_dispenser: "Collect: Blueberry Dispenser",
+      collect_strawberry_dispenser: "Collect: Strawberry Dispenser",
+      collect_coconut_dispenser: "Collect: Coconut Dispenser",
+      collect_royal_jelly_dispenser: "Collect: Royal Jelly Dispenser",
+      collect_treat_dispenser: "Collect: Treat Dispenser",
+      collect_ant_pass_dispenser: "Collect: Ant Pass Dispenser",
+      collect_buy_ant_pass: "Collect: Buy Ant Pass",
+      collect_glue_dispenser: "Collect: Glue Dispenser",
+      collect_stockings: "Collect: Stockings",
+      collect_wreath: "Collect: Wreath",
+      collect_feast: "Collect: Feast",
+      collect_samovar: "Collect: Samovar",
+      collect_snow_machine: "Collect: Snow Machine",
+      collect_lid_art: "Collect: Lid Art",
+      collect_candles: "Collect: Candles",
+      collect_memory_match: "Collect: Memory Match",
+      collect_mega_memory_match: "Collect: Mega Memory Match",
+      collect_extreme_memory_match: "Collect: Extreme Memory Match",
+      collect_winter_memory_match: "Collect: Winter Memory Match",
+      collect_honeystorm: "Collect: Honeystorm",
+      collect_wind_shrine: "Collect: Wind Shrine",
+      collect_honey_dispenser: "Collect: Honey Dispenser",
+      collect_robo_pass_dispenser: "Collect: Robo Pass Dispenser",
+      collect_gummy_beacon: "Collect: Gummy Beacon",
+      collect_gingerbread: "Collect: Gingerbread House",
+      collect_blue_booster: "Collect: Blue Booster",
+      collect_red_booster: "Collect: Red Booster",
+      collect_mountain_booster: "Collect: Mountain Booster",
+      collect_sticker_stack: "Collect: Sticker Stack",
+      collect_sticker_printer: "Collect: Sticker Printer",
+      collect_sprouts: "Collect: Sprouts",
+      collect_sticker_sprout: "Collect: Sticker Sprout",
+      kill_stump_snail: "Kill: Stump Snail",
+      kill_ladybug: "Kill: Ladybug",
+      kill_rhinobeetle: "Kill: Rhinobeetle",
+      kill_scorpion: "Kill: Scorpion",
+      kill_mantis: "Kill: Mantis",
+      kill_spider: "Kill: Spider",
+      kill_werewolf: "Kill: Werewolf",
+      kill_coconut_crab: "Kill: Coconut Crab",
+      kill_king_beetle: "Kill: King Beetle",
+      kill_tunnel_bear: "Kill: Tunnel Bear",
+      mondo_buff: "Collect: Mondo Buff",
+      stinger_hunt: "Stinger Hunt",
+      auto_field_boost: "Auto Field Boost",
+      ant_challenge: "Ant Challenge",
+      quest_polar_bear: "Quest: Polar Bear",
+      quest_brown_bear: "Quest: Brown Bear",
+      quest_black_bear: "Quest: Black Bear",
+      quest_honey_bee: "Quest: Honey Bee",
+      quest_bucko_bee: "Quest: Bucko Bee",
+      quest_riley_bee: "Quest: Riley Bee",
+      blender: "Blender",
+      planters: "Planters",
+    };
+
+    if (displayNames[taskId]) {
+      taskName = displayNames[taskId];
+    }
+
+    const category = getCategory(taskId);
+    const badge = getCategoryBadge(category);
+    const enabled = isTaskEnabled(taskId, settings);
+    const locked = isPriorityList && isPriorityLockedTask(taskId);
+
+    if (isPriorityList && taskId.startsWith("quest_") && !questHeaderInserted) {
+      container.appendChild(
+        createPriorityLockHeader(
+          "quest",
+          "Quests",
+          "Handled automatically — order doesn't matter."
+        )
+      );
+      questHeaderInserted = true;
+    }
+    if (isPriorityList && taskId === "planters" && !planterHeaderInserted) {
+      container.appendChild(
+        createPriorityLockHeader(
+          "planter",
+          "Planters",
+          "Handled automatically — order doesn't matter."
+        )
+      );
+      planterHeaderInserted = true;
+    }
+
+    // Quests/planters are represented only by the locked summary blocks above.
+    if (isPriorityList && locked) {
+      return;
+    }
+
+    const itemElement = document.createElement("div");
+    itemElement.className = `drag-item${enabled ? "" : " disabled"}`;
+    itemElement.setAttribute("data-id", taskId);
+    itemElement.setAttribute("data-category", category);
+    itemElement.setAttribute("draggable", "true");
+    itemElement.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
+      <span class="category-badge">${badge}</span>
+      <span class="drag-text">${taskName}</span>
+      <div class="drag-actions">
+        <button class="drag-action-btn move-to-top" title="Move to top">↑ Top</button>
+        <button class="drag-action-btn move-to-bottom" title="Move to bottom">↓ Bottom</button>
+      </div>
+    `;
+    container.appendChild(itemElement);
+  });
+}
+
+//load fields based on the obj data
+eel.expose(loadInputs);
+function loadInputs(obj, save = "") {
+  function setInputElementValue(ele, v) {
+    if (ele.type == "checkbox") {
+      ele.checked = v;
+    } else if (ele.tagName == "SELECT") {
+      ele.value = v;
+    } else if (ele.className.includes("custom-select")) {
+      setDropdownValue(ele, v);
+    } else if (ele.className.includes("keybind-input")) {
+      // Handle keybind elements
+      const keybind = normalizeKeybindString(v);
+      ele.dataset.keybind = keybind;
+      const displayText = keybind ? keybindDisplayText(keybind) : "Click to record";
+      ele.querySelector(".keybind-display").textContent = displayText;
+    } else if (ele.className.includes("drag-list")) {
+      // Handle drag list elements
+      loadDragListOrder(ele, v, obj);
+    } else if (ele.className.includes("multi-checklist")) {
+      let selected = Array.isArray(v) ? v : [];
+      if (!Array.isArray(v) && typeof v === "string") {
+        try {
+          const parsed = JSON.parse(v.replaceAll("'", '"'));
+          selected = Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          selected = v.split(",").map((value) => value.trim()).filter(Boolean);
+        }
+      }
+      Array.from(ele.querySelectorAll("input[type='checkbox']")).forEach((input) => {
+        input.checked = selected.includes(input.value);
+      });
+    } else {
+      ele.value = v;
+    }
+  }
+
+  for (const [k, v] of Object.entries(obj)) {
+    // Specific logic for theme switching
+    if (k === "gui_theme") {
+      applyTheme(v);
+    }
+    const ele = document.getElementById(k);
+    if (ele) setInputElementValue(ele, v);
+
+    document.querySelectorAll(`[data-setting-id="${k}"]`).forEach(boundEle => {
+      if (boundEle !== ele) setInputElementValue(boundEle, v);
+    });
+
+    //check if element exists
+    if (!ele && !document.querySelector(`[data-setting-id="${k}"]`)) {
+      continue;
+    }
+  }
+  if (save == "profile") {
+    eel.saveDictProfileSettings(obj);
+  }
+  loadCustomColors(obj);
+  // Update visibility of any dependent fields after loading inputs
+  try { updateDependentFields(); } catch (e) { /* ignore */ }
+
+  // Ensure the beta commit input is never pre-filled from saved settings
+  try {
+    const betaEl = document.getElementById("beta_commit_hash");
+    if (betaEl) betaEl.value = "";
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Show/hide inputs that depend on the 'return' dropdown value
+function updateDependentFields() {
+  updateReturnDependentFields();
+  updateScheduledRejoinDependentFields();
+  updateQuestProgressFields();
+  updateBoostHotbarIcons();
+}
+
+function updateReturnDependentFields() {
+  const returnEle = document.getElementById("return");
+  if (!returnEle) return;
+  const val = getDropdownValue(returnEle); // normalized lower-case value without emoji
+  const fallbackEle = document.getElementById("use_whirlwig_fallback");
+  if (!fallbackEle) return;
+  const form = fallbackEle.closest("form");
+  if (!form) return;
+  if (val === "walk") {
+    form.style.display = "flex";
+  } else {
+    form.style.display = "none";
+  }
+}
+
+function updateScheduledRejoinDependentFields() {
+  const scheduleEle = document.getElementById("rejoin_schedule_type");
+  if (!scheduleEle) return;
+
+  const val = getDropdownValue(scheduleEle) || "hours";
+  const everyForm = document.getElementById("rejoin_every")?.closest("form");
+  const atTimeForm = document.getElementById("rejoin_at_time")?.closest("form");
+  const timeZoneForm = document.getElementById("rejoin_timezone")?.closest("form");
+
+  if (everyForm) everyForm.style.display = val === "daily" ? "none" : "flex";
+  if (atTimeForm) atTimeForm.style.display = val === "daily" ? "flex" : "none";
+  if (timeZoneForm) timeZoneForm.style.display = val === "daily" ? "flex" : "none";
+}
+/*
+=============================================
+Utils
+=============================================
+*/
+
+//utility to run after content has loaded
+//to be fired as a callback in ajax .load
+function textboxRestriction(ele, evt) {
+  var charCode = evt.which ? evt.which : evt.keyCode;
+  if (ele.dataset.inputLimit != 0 && ele.value.length >= ele.dataset.inputLimit)
+    return false;
+  if (ele.dataset.inputType == "float") {
+    //a minus sign is only allowed first, and only on inputs that opt in
+    if (charCode == 45) {
+      //a minus inside the selection is being replaced, so only look at the rest
+      return ele.dataset.allowNegative == "1" && ele.selectionStart === 0 && !ele.value.slice(ele.selectionEnd).includes("-");
+    }
+    //nothing goes in front of the minus sign, or "-2" could become "1-2"
+    if (ele.value.startsWith("-") && ele.selectionStart === 0 && ele.selectionEnd === 0) return false;
+    if (charCode == 46) {
+      //Check if the text already contains the . character
+      if (ele.value.indexOf(".") === -1) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      if (charCode > 31 && (charCode < 48 || charCode > 57)) return false;
+    }
+    return true;
+  } else if (ele.dataset.inputType == "int") {
+    return !(charCode > 31 && (charCode < 48 || charCode > 57));
+  }
+}
+
+// Custom theme colours: each is a hex textbox with a picker beside it. The boxes show the colours of the
+// theme in use, or the last custom colours when Custom is on. Editing one on another theme switches to Custom.
+function showThemeColors() {
+  const custom = document.documentElement.dataset.theme === "custom";
+  const colors = custom ? readCustomColors() : currentThemeColors();
+  for (const id of Object.keys(CUSTOM_THEME_COLORS)) {
+    const box = document.getElementById(id);
+    if (!box) return; // the config tab isn't built yet
+    const picker = document.querySelector(`[data-color-for="${id}"]`);
+    box.value = picker.value = colors[id];
+    box.setAttribute("aria-invalid", "false");
+    box.title = "";
+  }
+}
+
+// Settings that were just loaded become the remembered custom colours.
+function loadCustomColors(settings) {
+  const colors = readCustomColors();
+  for (const id of Object.keys(CUSTOM_THEME_COLORS)) {
+    if (HEX_COLOR.test(settings[id])) colors[id] = normalizeHex(settings[id]);
+  }
+  setCustomColors(colors);
+  showThemeColors();
+}
+
+// Save a typed colour once it is six hex digits. Until then the last saved colour stays in use.
+// On another theme, that theme's colours with this edit become the Custom theme.
+async function saveCustomColor(box) {
+  const valid = HEX_COLOR.test(box.value.trim());
+  box.setAttribute("aria-invalid", String(!valid));
+  box.title = valid ? "" : "Enter six hex digits, like #00FF00";
+  if (!valid) return;
+  box.value = normalizeHex(box.value);
+  const custom = document.documentElement.dataset.theme === "custom";
+  setCustomColors({ ...(custom ? readCustomColors() : currentThemeColors()), [box.id]: box.value });
+  if (custom) {
+    document.querySelector(`[data-color-for="${box.id}"]`).value = box.value;
+    return saveSetting(box, "general");
+  }
+  const dropdown = document.getElementById("gui_theme");
+  setDropdownValue(dropdown, "Custom");
+  applyTheme(getDropdownValue(dropdown));
+  showThemeColors();
+  await saveSetting(dropdown, "general");
+  for (const id of Object.keys(CUSTOM_THEME_COLORS)) await saveSetting(document.getElementById(id), "general");
+}
+
+function pickCustomColor(picker) {
+  const box = document.getElementById(picker.dataset.colorFor);
+  box.value = picker.value;
+  saveCustomColor(box);
+}
+
+//disable browser actions
+/*
+window.oncontextmenu = function(event) {
+    // block right-click / context-menu
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+};
+*/
+const keybindModifierOrder = ["Ctrl", "Alt", "Shift", "Cmd"];
+const keybindIds = [
+  "start_keybind",
+  "pause_keybind",
+  "stop_keybind",
+  "hotbar_buff_start_keybind",
+  "autoclicker_keybind",
+  "auto_gifted_basic_bee_start_keybind",
+];
+const keybindLabels = {
+  start_keybind: "Start Macro",
+  pause_keybind: "Pause/Resume Macro",
+  stop_keybind: "Stop Macro",
+  hotbar_buff_start_keybind: "Start Hotbar Buff",
+  autoclicker_keybind: "Start Auto Clicker",
+  auto_gifted_basic_bee_start_keybind: "Start Auto Gifted Basic Bee",
+};
+// These keys are generated by the macro while it runs. They cannot safely be
+// used as a hotkey's non-modifier key, even when combined with modifiers.
+const macroReservedKeybindKeys = new Set([
+  "A", "D", "E", "F", "I", "O", "R", "S", "W",
+  "Space", "Enter", "Escape", "PageUp", "PageDown", "F7",
+  ",", ".", "\\", ...Array.from({ length: 10 }, (_, index) => String(index)),
+]);
+const browserReservedKeybindKeys = new Set(["F5", "F11", "F12"]);
+const browserOrAppReservedKeybinds = new Set([
+  "Ctrl+L", "Ctrl+N", "Ctrl+O", "Ctrl+P", "Ctrl+R", "Ctrl+S", "Ctrl+T", "Ctrl+W",
+  "Ctrl+Shift+C", "Ctrl+Shift+I", "Ctrl+Shift+J", "Ctrl+Shift+N", "Ctrl+Shift+P", "Ctrl+Shift+T",
+  "Cmd+H", "Cmd+L", "Cmd+M", "Cmd+N", "Cmd+O", "Cmd+P", "Cmd+Q", "Cmd+R", "Cmd+S", "Cmd+Space", "Cmd+T", "Cmd+W",
+  "Alt+F4", "Alt+Tab", "Cmd+Tab",
+]);
+
+function normalizeKeybindKey(key) {
+  if (!key) return "";
+  const aliases = {
+    " ": "Space",
+    Spacebar: "Space",
+    Control: "Ctrl",
+    Ctrl: "Ctrl",
+    Alt: "Alt",
+    Option: "Alt",
+    Shift: "Shift",
+    Meta: "Cmd",
+    Command: "Cmd",
+    Cmd: "Cmd",
+    Esc: "Escape",
+    Escape: "Escape",
+    Del: "Delete",
+    Delete: "Delete",
+    ArrowLeft: "ArrowLeft",
+    ArrowRight: "ArrowRight",
+    ArrowUp: "ArrowUp",
+    ArrowDown: "ArrowDown",
+    PageUp: "PageUp",
+    PageDown: "PageDown",
+    CapsLock: "CapsLock",
+    Fn: "Fn",
+  };
+  if (aliases[key]) return aliases[key];
+  if (/^F\d{1,2}$/i.test(key)) return key.toUpperCase();
+  if (key.length === 1) return key.toUpperCase();
+  return key;
+}
+
+function keybindKeyFromEvent(event) {
+  if (!event) return "";
+  const code = event.code || "";
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (/^Numpad\d$/.test(code)) return code;
+  if (/^F\d{1,2}$/.test(code)) return code;
+  return normalizeKeybindKey(event.key);
+}
+
+function sortKeybindKeys(keys) {
+  const uniqueKeys = Array.from(new Set(keys.filter((key) => key && key !== "Fn")));
+  const modifiers = keybindModifierOrder.filter((key) => uniqueKeys.includes(key));
+  const normalKeys = uniqueKeys
+    .filter((key) => !keybindModifierOrder.includes(key))
+    .sort();
+  return modifiers.concat(normalKeys);
+}
+
+function normalizeKeybindString(keybind) {
+  return sortKeybindKeys(
+    String(keybind || "")
+      .split("+")
+      .map((key) => normalizeKeybindKey(key.trim()))
+  ).join("+");
+}
+
+function keybindDisplayText(keybind) {
+  return normalizeKeybindString(keybind).replace(/\+/g, " + ");
+}
+
+function keybindFromEvent(event) {
+  const keys = [];
+  if (event.ctrlKey) keys.push("Ctrl");
+  if (event.altKey) keys.push("Alt");
+  if (event.shiftKey) keys.push("Shift");
+  if (event.metaKey) keys.push("Cmd");
+
+  const mainKey = keybindKeyFromEvent(event);
+  if (!keybindModifierOrder.includes(mainKey)) keys.push(mainKey);
+  return sortKeybindKeys(keys).join("+");
+}
+
+function getKeybindConflict(keybind, currentId) {
+  return keybindIds.find((id) => id !== currentId &&
+    normalizeKeybindString(document.getElementById(id)?.dataset.keybind) === keybind);
+}
+
+function keybindValidationError(keybind, currentId) {
+  const keys = keybind.split("+").filter(Boolean);
+  const nonModifierKeys = keys.filter((key) => !keybindModifierOrder.includes(key));
+  if (!nonModifierKeys.length) return "Include a non-modifier key in the keybind.";
+
+  const conflictId = getKeybindConflict(keybind, currentId);
+  if (conflictId) return `That keybind is already assigned to ${keybindLabels[conflictId]}.`;
+
+  if (nonModifierKeys.some((key) => macroReservedKeybindKeys.has(key))) {
+    return "That key is used by the macro while it runs. Choose a different keybind.";
+  }
+  if (nonModifierKeys.some((key) => browserReservedKeybindKeys.has(key)) ||
+      browserOrAppReservedKeybinds.has(keybind)) {
+    return "That shortcut is reserved by the browser or operating system. Choose a different keybind.";
+  }
+  return "";
+}
+
+async function saveKeybind(element, keybind) {
+  element.dataset.keybind = keybind;
+  element.querySelector(".keybind-display").textContent = keybind
+    ? keybindDisplayText(keybind)
+    : "Click to record";
+  const triggerFunction = element.getAttribute("data-trigger-function");
+  if (triggerFunction) {
+    try {
+      const functionCall = triggerFunction.replace("this", "element");
+      await eval(functionCall);
+    } catch (error) {
+      console.error("Failed to save keybind:", error);
+    }
+  }
+  await updateKeybindDisplay();
+}
+
+async function clearKeybind(elementId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  if (keybindRecording) stopKeybindRecording();
+  await saveKeybind(element, "");
+}
+
+// Function to check if current key combination matches a configured keybind
+function isConfiguredKeybind(event) {
+  // Get current keybinds from settings
+  const startKeybind = normalizeKeybindString(
+    document.getElementById("start_keybind")?.dataset.keybind
+  );
+  const pauseKeybind = normalizeKeybindString(
+    document.getElementById("pause_keybind")?.dataset.keybind
+  );
+  const stopKeybind = normalizeKeybindString(
+    document.getElementById("stop_keybind")?.dataset.keybind
+  );
+  const hotbarBuffStartKeybind = normalizeKeybindString(
+    document.getElementById("hotbar_buff_start_keybind")?.dataset.keybind
+  );
+  const autoClickerKeybind = normalizeKeybindString(
+    document.getElementById("autoclicker_keybind")?.dataset.keybind
+  );
+  const autoGiftedBasicBeeStartKeybind = normalizeKeybindString(
+    document.getElementById("auto_gifted_basic_bee_start_keybind")?.dataset.keybind
+  );
+
+  if (!startKeybind && !pauseKeybind && !stopKeybind && !hotbarBuffStartKeybind && !autoClickerKeybind && !autoGiftedBasicBeeStartKeybind) return false;
+
+  const currentComboString = keybindFromEvent(event);
+
+  // Check if it matches either configured keybind
+  return (
+    currentComboString === startKeybind ||
+    currentComboString === pauseKeybind ||
+    currentComboString === stopKeybind ||
+    currentComboString === hotbarBuffStartKeybind ||
+    currentComboString === autoClickerKeybind ||
+    currentComboString === autoGiftedBasicBeeStartKeybind
+  );
+}
+
+window.addEventListener("keydown", (event) => {
+  const key = event.key;
+  const disabledKeys = ["F5", "F12"];
+
+  // Block specific browser shortcuts that don't interfere with macro
+  if (disabledKeys.includes(key)) {
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  } else if (event.ctrlKey && event.shiftKey && event.key == "I") {
+    // block Strg+Shift+I (DevTools)
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  } else if (event.ctrlKey && event.shiftKey && event.key == "J") {
+    // block Strg+Shift+J (Console)
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  }
+
+  // Block ALL configured keybinds to prevent browser interference
+  if (isConfiguredKeybind(event)) {
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  }
+});
+
+// Ignore Enter in settings textboxes so it can't submit/reload a surrounding form.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement) || target.type !== "text") return;
+  if (!target.classList.contains("textbox")) return;
+  event.preventDefault();
+  target.blur();
+});
+
+/*
+=============================================
+Custom Select
+=============================================
+*/
+dropdownOpen = false;
+function isMultiSelectDropdown(ele) {
+  return ele?.dataset?.multiple === "true";
+}
+
+function getDropdownMaxSelections(ele) {
+  const maxSelections = Number(ele?.dataset?.maxSelections || 0);
+  return Number.isFinite(maxSelections) && maxSelections > 0 ? maxSelections : 0;
+}
+
+function normalizeDropdownOptionValue(value) {
+  if (typeof value === "number") return value;
+  const text = String(value ?? "").trim();
+  if (text === "") return "";
+  const numeric = Number(text);
+  return Number.isNaN(numeric) ? text.toLowerCase() : numeric;
+}
+
+function normalizeDropdownMultiValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(normalizeDropdownOptionValue).filter((item) => item !== "");
+  }
+  if (value === null || value === undefined || value === "" || value === "none") {
+    return [];
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "0") return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map(normalizeDropdownOptionValue).filter((item) => item !== "");
+        }
+      } catch (e) {
+        // fall through and treat as scalar
+      }
+    }
+    if (trimmed.includes(",")) {
+      return trimmed
+        .split(",")
+        .map(normalizeDropdownOptionValue)
+        .filter((item) => item !== "");
+    }
+  }
+  const normalized = normalizeDropdownOptionValue(value);
+  return normalized === 0 || normalized === "0" || normalized === "" ? [] : [normalized];
+}
+
+function updateMultiDropdownDisplay(parentEle, values) {
+  let normalizedValues = normalizeDropdownMultiValue(values);
+  const maxSelections = getDropdownMaxSelections(parentEle);
+  if (maxSelections && normalizedValues.length > maxSelections) {
+    normalizedValues = normalizedValues.slice(0, maxSelections);
+  }
+  const selectEle = parentEle.children[0].children[0];
+  const optionsEle = parentEle.children[1].children[0];
+  const selectedLabels = [];
+
+  Array.from(optionsEle.children).forEach((option) => {
+    const optionValue = normalizeDropdownOptionValue(option.dataset.value);
+    const isSelected = normalizedValues.some((value) => value == optionValue);
+    option.classList.toggle("selected", isSelected);
+    if (isSelected) {
+      selectedLabels.push(option.textContent.trim());
+    }
+  });
+
+  selectEle.dataset.value = JSON.stringify(normalizedValues);
+  selectEle.innerHTML = selectedLabels.length ? selectedLabels.join(", ") : "None";
+  try { updateDependentFields(); } catch (e) { /* ignore */ }
+}
+
+//pass an optionEle to set the select-area
+function updateDropDownDisplay(optionEle) {
+  const parentEle = optionEle.parentElement.parentElement.parentElement;
+  if (isMultiSelectDropdown(parentEle)) {
+    const currentValues = normalizeDropdownMultiValue(getDropdownValue(parentEle));
+    const optionValue = normalizeDropdownOptionValue(optionEle.dataset.value);
+    const isSelected = currentValues.some((value) => value == optionValue);
+    const maxSelections = getDropdownMaxSelections(parentEle);
+    if (!isSelected && maxSelections && currentValues.length >= maxSelections) {
+      updateMultiDropdownDisplay(parentEle, currentValues);
+      return;
+    }
+    const nextValues = currentValues.some((value) => value == optionValue)
+      ? currentValues.filter((value) => value != optionValue)
+      : [...currentValues, optionValue];
+    updateMultiDropdownDisplay(parentEle, nextValues);
+    return;
+  }
+  //set the data-value attribute of the select
+  const selectEle = parentEle.children[0].children[0];
+  selectEle.dataset.value = optionEle.dataset.value;
+  //set the display to match the option
+  selectEle.innerHTML = optionEle.innerHTML;
+  selectEle.title = "";
+  // Ensure dependent fields reflect this change
+  try { updateDependentFields(); } catch (e) { /* ignore */ }
+}
+//document click event
+function dropdownClicked(event) {
+  const target = event.target;
+  if (!target) {
+    dropdownOpen = false;
+    return;
+  }
+
+  if (target.closest?.(".multi-checklist")) {
+    closeAllDropdowns();
+    return;
+  }
+  const selectArea = target.closest?.(".select-area");
+  const dropdownOption = target.closest?.(".custom-select .option");
+  if (selectArea) {
+    const parent = selectArea.parentElement;
+    const optionsEle = parent.children[1].children[0];
+    closeAllDropdowns(optionsEle); //close all other dropdowns
+    if (dropdownOpen !== optionsEle) {
+      dropdownOpen = optionsEle;
+      optionsEle.style.display = "block";
+      const currValue = parent.children[0].children[0].dataset.value;
+      if (isMultiSelectDropdown(parent)) {
+        const selectedValues = normalizeDropdownMultiValue(currValue);
+        Array.from(optionsEle.children).forEach((x) => {
+          const optionValue = normalizeDropdownOptionValue(x.dataset.value);
+          x.classList.toggle(
+            "selected",
+            selectedValues.some((value) => value == optionValue)
+          );
+        });
+      } else {
+        Array.from(optionsEle.children).forEach((x) => {
+          x.dataset.value == currValue
+            ? x.classList.add("selected")
+            : x.classList.remove("selected");
+        });
+      }
+      //check if its going below the screen and render the menu above
+      parent.style.transform = "none";
+      optionsEle.style.transform = "none";
+      selectArea.style.transform = "none";
+      const height = optionsEle.getBoundingClientRect().height;
+      const y = optionsEle.getBoundingClientRect().top;
+      if (height + y > window.innerHeight && y > height) {
+        parent.style.transform = "rotate(180deg)"; //render the dropdown menu above
+        optionsEle.style.transform = "rotate(180deg)";
+        selectArea.style.transform = "rotate(180deg)";
+      }
+    } else {
+      optionsEle.style.display = "none";
+      dropdownOpen = false;
+    }
+    return;
+  }
+
+  if (dropdownOption) {
+    const parentEle = dropdownOption.parentElement.parentElement.parentElement;
+    const isMulti = isMultiSelectDropdown(parentEle);
+    if (!isMulti) closeAllDropdowns();
+    updateDropDownDisplay(dropdownOption);
+    if (parentEle.id === "gui_theme") {
+      applyTheme(getDropdownValue(parentEle));
+      showThemeColors();
+    }
+    let funcParams = parentEle.dataset.onchange.replace("this", "parentEle");
+    eval(funcParams);
+    if (!isMulti) dropdownOpen = false;
+    return;
+  }
+
+  closeAllDropdowns();
+  dropdownOpen = false;
+}
+
+function getDropdownValue(ele) {
+  const value = ele.children[0].children[0].dataset.value;
+  if (isMultiSelectDropdown(ele)) {
+    return normalizeDropdownMultiValue(value);
+  }
+  return value;
+}
+
+function setDropdownValue(ele, value) {
+  if (isMultiSelectDropdown(ele)) {
+    updateMultiDropdownDisplay(ele, value);
+    return;
+  }
+  const options = Array.from(ele.children[1].children[0].children);
+  // option values are stored trimmed and lowercased (see buildInput)
+  const normalize = (v) => String(v ?? "").trim().toLowerCase();
+  const findOption = (v) => options.find((x) => normalize(x.dataset.value) == normalize(v));
+
+  let option = findOption(value);
+  if (!option && normalize(value) === "") {
+    // never saved: show the default instead of the "None" placeholder
+    option = (ele.dataset.default && findOption(ele.dataset.default)) || options[0];
+  }
+  if (option) {
+    updateDropDownDisplay(option);
+    return;
+  }
+  if (normalize(value) === "") return;
+
+  // The saved value isn't in the list (e.g. a deleted pattern). Show it as it is rather than
+  // another option, so the GUI matches what the macro uses, and keep it as the value.
+  const selectEle = ele.children[0].children[0];
+  selectEle.dataset.value = value;
+  selectEle.textContent = options.length ? `${value} (not found)` : String(value);
+  selectEle.title = options.length ? "This saved value isn't one of the options. Choose one to replace it." : "";
+  try { updateDependentFields(); } catch (e) { /* ignore */ }
+}
+//close all other dropdown menus
+//if ele is undefined, close all menus
+function closeAllDropdowns(ele) {
+  Array.from(document.getElementsByClassName("select-menu")).forEach((x) => {
+    if (ele !== x) x.style.display = "none";
+  });
+}
+function dropdownHover(event) {
+  const option = event.target.closest?.(".option");
+  if (option) {
+    const optionsEle = option.parentElement;
+    Array.from(optionsEle.children).forEach((x) => {
+      x.classList.remove("hovered");
+    });
+    option.classList.add("hovered");
+  }
+}
+
+function dropdownHoverLeave(event) {
+  const option = event.target.closest?.(".option");
+  if (option) {
+    option.classList.remove("hovered");
+  }
+}
+document.addEventListener("click", dropdownClicked);
+document.addEventListener("mouseover", dropdownHover);
+document.addEventListener("mouseout", dropdownHoverLeave);
+
+// Keybind recording functionality
+let keybindRecording = false;
+// clear a flag left on if the page reloaded mid-recording
+if (window.eel) eel.setKeybindRecording(false);
+let currentKeybindElement = null;
+let keybindSequence = [];
+
+function startKeybindRecording(elementId) {
+  const element = document.getElementById(elementId);
+  if (keybindRecording) {
+    stopKeybindRecording();
+    return;
+  }
+
+  keybindRecording = true;
+  currentKeybindElement = element;
+  element.dataset.recording = "true";
+  if (window.eel) eel.setKeybindRecording(true);
+  element.style.borderColor = "var(--primary)";
+  element.style.backgroundColor = "#36393F";
+  element.style.boxShadow = "0 0 10px rgba(var(--primary-rgb), 0.3)";
+  element.querySelector(".keybind-display").textContent =
+    "Press key combination... (Backspace/Delete to clear)";
+
+  // Reset sequence
+  keybindSequence = [];
+
+  // Add event listeners for key recording
+  document.addEventListener("keydown", handleKeybindKeyDown);
+  document.addEventListener("keyup", handleKeybindKeyUp);
+
+  // Add click listener to stop recording if user clicks elsewhere
+  setTimeout(() => {
+    document.addEventListener("click", handleKeybindClickOutside);
+  }, 100);
+}
+
+function handleKeybindClickOutside(event) {
+  if (
+    keybindRecording &&
+    currentKeybindElement &&
+    !currentKeybindElement.contains(event.target)
+  ) {
+    stopKeybindRecording();
+  }
+}
+
+// Function to update all keybind displays in real time
+async function updateKeybindDisplay() {
+  try {
+    // Update start button text using the existing function from home.js
+    if (typeof updateStartButtonText === "function") {
+      await updateStartButtonText();
+    }
+
+    // Also update the button text directly as fallback
+    const settings = await loadAllSettings();
+    const startKey = settings.start_keybind ?? "F1";
+    const pauseKey = settings.pause_keybind ?? "F2";
+    const stopKey = settings.stop_keybind ?? "F3";
+    const hotbarBuffStartKey = settings.hotbar_buff_start_keybind ?? "F4";
+    const autoClickerKey = settings.autoclicker_keybind ?? "";
+    const autoGiftedBasicBeeStartKey = settings.auto_gifted_basic_bee_start_keybind ?? "";
+
+    const startButton = document.getElementById("start-btn");
+    if (startButton) {
+      startButton.textContent = `Start [${startKey || "Not set"}]`;
+    }
+
+    // Update keybind input field displays
+    const startKeybindElement = document.getElementById("start_keybind");
+    const pauseKeybindElement = document.getElementById("pause_keybind");
+    const stopKeybindElement = document.getElementById("stop_keybind");
+    const hotbarBuffStartKeybindElement = document.getElementById("hotbar_buff_start_keybind");
+    const autoClickerKeybindElement = document.getElementById("autoclicker_keybind");
+    const autoGiftedBasicBeeStartKeybindElement = document.getElementById("auto_gifted_basic_bee_start_keybind");
+
+    if (
+      startKeybindElement &&
+      startKeybindElement.querySelector(".keybind-display")
+    ) {
+      startKeybindElement.querySelector(".keybind-display").textContent =
+        startKey ? keybindDisplayText(startKey) : "Click to record";
+    }
+
+    if (
+      pauseKeybindElement &&
+      pauseKeybindElement.querySelector(".keybind-display")
+    ) {
+      pauseKeybindElement.querySelector(".keybind-display").textContent =
+        pauseKey ? keybindDisplayText(pauseKey) : "Click to record";
+    }
+
+    if (
+      stopKeybindElement &&
+      stopKeybindElement.querySelector(".keybind-display")
+    ) {
+      stopKeybindElement.querySelector(".keybind-display").textContent =
+        stopKey ? keybindDisplayText(stopKey) : "Click to record";
+    }
+
+    if (
+      hotbarBuffStartKeybindElement &&
+      hotbarBuffStartKeybindElement.querySelector(".keybind-display")
+    ) {
+      hotbarBuffStartKeybindElement.querySelector(".keybind-display").textContent =
+        hotbarBuffStartKey ? keybindDisplayText(hotbarBuffStartKey) : "Click to record";
+    }
+
+    if (autoClickerKeybindElement && autoClickerKeybindElement.querySelector(".keybind-display")) {
+      autoClickerKeybindElement.querySelector(".keybind-display").textContent =
+        autoClickerKey ? keybindDisplayText(autoClickerKey) : "Click to record";
+    }
+
+    if (autoGiftedBasicBeeStartKeybindElement && autoGiftedBasicBeeStartKeybindElement.querySelector(".keybind-display")) {
+      autoGiftedBasicBeeStartKeybindElement.querySelector(".keybind-display").textContent =
+        autoGiftedBasicBeeStartKey ? keybindDisplayText(autoGiftedBasicBeeStartKey) : "Click to record";
+    }
+  } catch (error) {
+    // Silently handle errors
+  }
+}
+
+function stopKeybindRecording() {
+  if (!keybindRecording) return;
+
+  keybindRecording = false;
+  if (window.eel) eel.setKeybindRecording(false);
+  if (currentKeybindElement) {
+    currentKeybindElement.dataset.recording = "false";
+    currentKeybindElement.style.borderColor = "var(--primary)";
+    currentKeybindElement.style.backgroundColor = "#2F3136";
+    currentKeybindElement.style.boxShadow = "none";
+  }
+  currentKeybindElement = null;
+  keybindSequence = [];
+
+  // Remove event listeners
+  document.removeEventListener("keydown", handleKeybindKeyDown);
+  document.removeEventListener("keyup", handleKeybindKeyUp);
+  document.removeEventListener("click", handleKeybindClickOutside);
+}
+
+function handleKeybindKeyDown(event) {
+  if (!keybindRecording || !currentKeybindElement) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const keyName = keybindKeyFromEvent(event);
+  if (!keyName || keyName === "Fn") return;
+
+  if (keyName === "Backspace" || keyName === "Delete") {
+    const element = currentKeybindElement;
+    stopKeybindRecording();
+    saveKeybind(element, "");
+    return;
+  }
+
+  // Add to sequence if not already present
+  if (!keybindSequence.includes(keyName)) {
+    keybindSequence.push(keyName);
+  }
+
+  // Update display
+  const displayText = sortKeybindKeys(keybindSequence).join(" + ");
+  currentKeybindElement.querySelector(".keybind-display").textContent =
+    displayText;
+}
+
+async function finalizeKeybind() {
+  if (!keybindRecording || !currentKeybindElement) return;
+
+  const element = currentKeybindElement;
+  const keybindString = sortKeybindKeys(keybindSequence).join("+");
+  const error = keybindValidationError(keybindString, element.id);
+  // Stop first so releasing the remaining modifier keys cannot save twice.
+  stopKeybindRecording();
+  if (error) {
+    alert(error);
+    const existingKeybind = normalizeKeybindString(element.dataset.keybind);
+    element.querySelector(".keybind-display").textContent = existingKeybind
+      ? keybindDisplayText(existingKeybind)
+      : "Click to record";
+  } else {
+    await saveKeybind(element, keybindString);
+  }
+}
+
+function handleKeybindKeyUp(event) {
+  if (!keybindRecording || !currentKeybindElement) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  // Finalize the keybind when any key is released
+  finalizeKeybind();
+}
+
+/*
+=============================================
+Image Zoom Functionality
+=============================================
+*/
+
+let zoomLevel = 1;
+let zoomModal = null;
+let zoomedImage = null;
+let currentImageSrc = null;
+let imageContainer = null;
+let mouseX = 0;
+let mouseY = 0;
+let translateX = 0;
+let translateY = 0;
+
+function initializeImageZoom() {
+  // Create zoom modal if it doesn't exist
+  if (!zoomModal) {
+    zoomModal = document.createElement("div");
+    zoomModal.id = "zoom-modal";
+    zoomModal.style.cssText = `
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      cursor: zoom-out;
+      overflow: hidden;
+    `;
+
+    imageContainer = document.createElement("div");
+    imageContainer.id = "zoom-image-container";
+    imageContainer.style.cssText = `
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    `;
+
+    zoomedImage = document.createElement("img");
+    zoomedImage.id = "zoomed-image";
+    zoomedImage.style.cssText = `
+      max-width: 90vw;
+      max-height: 90vh;
+      transition: transform 0.1s ease;
+      cursor: zoom-in;
+      transform-origin: center center;
+    `;
+
+    const controlsContainer = document.createElement("div");
+    controlsContainer.style.cssText = `
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      display: flex;
+      gap: 1rem;
+      z-index: 10001;
+    `;
+
+    const zoomInBtn = document.createElement("button");
+    zoomInBtn.textContent = "+";
+    zoomInBtn.className = "zoom-control-btn";
+    zoomInBtn.onclick = (e) => {
+      e.stopPropagation();
+      zoomImageCentered(1.2);
+    };
+
+    const zoomOutBtn = document.createElement("button");
+    zoomOutBtn.textContent = "-";
+    zoomOutBtn.className = "zoom-control-btn";
+    zoomOutBtn.onclick = (e) => {
+      e.stopPropagation();
+      zoomImageCentered(0.8);
+    };
+
+    const resetBtn = document.createElement("button");
+    resetBtn.textContent = "Reset";
+    resetBtn.className = "zoom-control-btn";
+    resetBtn.onclick = (e) => {
+      e.stopPropagation();
+      resetZoom();
+    };
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    closeBtn.className = "zoom-control-btn";
+    closeBtn.style.fontSize = "2rem";
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      closeZoomModal();
+    };
+
+    controlsContainer.appendChild(zoomInBtn);
+    controlsContainer.appendChild(zoomOutBtn);
+    controlsContainer.appendChild(resetBtn);
+    controlsContainer.appendChild(closeBtn);
+
+    imageContainer.appendChild(zoomedImage);
+    zoomModal.appendChild(imageContainer);
+    zoomModal.appendChild(controlsContainer);
+
+    // Track mouse position for scroll wheel zoom
+    imageContainer.addEventListener("mousemove", (e) => {
+      const rect = imageContainer.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+    });
+
+    // Scroll wheel zoom (mouse position based)
+    imageContainer.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      zoomImageAtMouse(delta, e.clientX, e.clientY);
+    });
+
+    // Close on background click
+    zoomModal.onclick = (e) => {
+      if (e.target === zoomModal) {
+        closeZoomModal();
+      }
+    };
+
+    // Close on Escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && zoomModal.style.display === "block") {
+        closeZoomModal();
+      }
+    });
+
+    document.body.appendChild(zoomModal);
+  }
+
+  // Add click handlers to all zoomable images
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("zoomable-image")) {
+      e.preventDefault();
+      e.stopPropagation();
+      openZoomModal(e.target.src);
+    }
+  });
+}
+
+function openZoomModal(imageSrc) {
+  if (!zoomModal) {
+    initializeImageZoom();
+  }
+  currentImageSrc = imageSrc;
+  zoomedImage.src = imageSrc;
+  zoomLevel = 1;
+  translateX = 0;
+  translateY = 0;
+  zoomedImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+  zoomModal.style.display = "block";
+  document.body.style.overflow = "hidden";
+
+  // Reset transform origin to center
+  zoomedImage.style.transformOrigin = "center center";
+}
+
+function closeZoomModal() {
+  if (zoomModal) {
+    zoomModal.style.display = "none";
+    document.body.style.overflow = "";
+    zoomLevel = 1;
+    translateX = 0;
+    translateY = 0;
+  }
+}
+
+function zoomImageAtMouse(factor, clientX, clientY) {
+  const rect = imageContainer.getBoundingClientRect();
+  const containerCenterX = rect.left + rect.width / 2;
+  const containerCenterY = rect.top + rect.height / 2;
+
+  // Get mouse position relative to container center
+  const mouseOffsetX = clientX - containerCenterX;
+  const mouseOffsetY = clientY - containerCenterY;
+
+  // Calculate new zoom level
+  const newZoomLevel = zoomLevel * factor;
+  const clampedZoom = Math.max(0.5, Math.min(newZoomLevel, 5));
+
+  if (clampedZoom === zoomLevel) return; // No change if at limits
+
+  // Calculate the zoom point relative to the image center
+  // We need to adjust translate to keep the point under the mouse fixed
+  const zoomRatio = clampedZoom / zoomLevel;
+
+  // Adjust translate to zoom towards mouse position
+  translateX = translateX * zoomRatio - mouseOffsetX * (zoomRatio - 1);
+  translateY = translateY * zoomRatio - mouseOffsetY * (zoomRatio - 1);
+
+  zoomLevel = clampedZoom;
+  updateImageTransform();
+}
+
+function zoomImageCentered(factor) {
+  const newZoomLevel = zoomLevel * factor;
+  zoomLevel = Math.max(0.5, Math.min(newZoomLevel, 5));
+
+  // For centered zoom, reset translate
+  translateX = 0;
+  translateY = 0;
+  zoomedImage.style.transformOrigin = "center center";
+  updateImageTransform();
+}
+
+function updateImageTransform() {
+  zoomedImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+}
+
+function resetZoom() {
+  zoomLevel = 1;
+  translateX = 0;
+  translateY = 0;
+  zoomedImage.style.transformOrigin = "center center";
+  updateImageTransform();
+}
+
+// Initialize zoom when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeImageZoom);
+} else {
+  initializeImageZoom();
+}
+

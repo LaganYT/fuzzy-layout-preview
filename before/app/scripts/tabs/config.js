@@ -1,0 +1,1002 @@
+/*
+=============================================
+Config Tab
+=============================================
+*/
+
+async function switchConfigTab(target) {
+  setActiveSubtab("activeConfigSubtab", target.id);
+  //remove the active classes and hide all tabs
+  Array.from(document.getElementsByClassName("config-tab-item")).forEach(
+    (x) => {
+      x.classList.remove("active");
+      document.getElementById(x.id.split("-")[1]).style.display = "none";
+    }
+  );
+  //add active class
+  target.classList.add("active");
+  //get the element of the page to show
+  const showElement = document.getElementById(target.id.split("-")[1]);
+  showElement.style.display = "block";
+  //scroll back to top
+  showElement.scrollTo(0, 0);
+  // If switching to profiles subtab, load profiles content
+  if (target.id === "setting-profiles" && typeof loadProfiles === "function") {
+    await loadProfiles();
+  }
+}
+
+async function loadConfig() {
+  const settings = await loadAllSettings();
+  setDropdownData("hidden_patterns", await eel.getPatterns()());
+  loadInputs(settings);
+  updateDiscordUniversalRouteText();
+  await loadModelStatus();
+
+  // Restore active subtab
+  // a remembered sub-tab that no longer exists (the old Stream tab) opens the first one
+  switchConfigTab(
+    document.getElementById(getActiveSubtab("activeConfigSubtab", "setting-bss")) ||
+      document.getElementById("setting-bss")
+  );
+
+  // Initialize drag and drop for priority list
+  initializeDragAndDrop();
+
+  // Initialize search functionality
+  initializePrioritySearch();
+
+  // Initialize quick action buttons
+  initializeQuickActions();
+}
+
+async function saveHiddenPatterns(ele) {
+  await saveSetting(ele, "general");
+  await loadGatherPatterns();
+  showGatherPatternOptions(getSelectedGatherPattern());
+}
+
+function formatModelSize(sizeBytes) {
+  if (!sizeBytes) return "";
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const MODEL_PRESENTATION = {
+  "token_detection_standard.mlmodelc": { group: "Standard", label: "Token Detection" },
+  "sprinkler_detection_standard.mlmodelc": { group: "Standard", label: "Sprinkler Detection" },
+  "token_detection_small.mlmodelc": { group: "Small", label: "Token Detection" },
+  "loot_detection_small.mlmodelc": { group: "Small", label: "Loot Detection" },
+  "token_detection_mini.mlmodelc": { group: "Mini", label: "Token Detection" },
+  "loot_detection_mini.mlmodelc": { group: "Mini", label: "Loot Detection" },
+  "bloom_detection_standard.mlmodelc": { group: "Standard", label: "Bloom Detection" },
+  "bloom_detection_light.mlmodelc": { group: "Small", label: "Bloom Detection" },
+  "bloom_detection_mini.mlmodelc": { group: "Mini", label: "Bloom Detection" },
+  "vicious_bee.onnx": { group: "Vicious Bee", label: "Vicious Bee Detection" },
+  "token_detection_standard.onnx": { group: "Standard", label: "Token Detection" },
+  "sprinkler_detection_standard.onnx": { group: "Standard", label: "Sprinkler Detection" },
+  "bloom_detection_standard.onnx": { group: "Standard", label: "Bloom Detection" },
+  "bloom_detection_light.onnx": { group: "Small", label: "Bloom Detection" },
+  "bloom_detection_mini.onnx": { group: "Mini", label: "Bloom Detection" },
+};
+const MODEL_GROUP_ORDER = ["Standard", "Small", "Mini", "Vicious Bee"];
+
+function getModelPresentation(model) {
+  return MODEL_PRESENTATION[model.name] || { group: "Other", label: "AI Model" };
+}
+
+function setModelDownloadStatus(message, isError = false) {
+  const status = document.getElementById("model-download-status");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("error", isError);
+}
+
+function setModelDownloadSummary(message) {
+  const summary = document.getElementById("model-download-summary");
+  if (summary) summary.textContent = message;
+}
+
+function setModelDownloadButtonsDisabled(disabled) {
+  document.querySelectorAll("#download-missing-models-button, .download-model-button").forEach((button) => {
+    button.classList.toggle("disabled", disabled);
+    button.style.pointerEvents = disabled ? "none" : "";
+    button.setAttribute("aria-disabled", String(disabled));
+  });
+}
+
+async function loadModelStatus() {
+  const list = document.getElementById("model-download-list");
+  if (!list || !window.eel || typeof eel.getModelStatus !== "function") return;
+
+  try {
+    const result = await eel.getModelStatus()();
+    const models = result?.models || [];
+    const missingCount = models.filter((model) => !model.installed).length;
+    const statusMessage = missingCount
+      ? `${missingCount} model${missingCount === 1 ? "" : "s"} missing.`
+      : "All supported models are installed.";
+    setModelDownloadStatus(statusMessage);
+    setModelDownloadSummary(missingCount ? `${missingCount} missing` : "All installed");
+    list.replaceChildren();
+    const modelsByGroup = models.reduce((groups, model) => {
+      const presentation = getModelPresentation(model);
+      groups[presentation.group] ||= [];
+      groups[presentation.group].push({ ...model, presentation });
+      return groups;
+    }, {});
+    const groups = [...MODEL_GROUP_ORDER, ...Object.keys(modelsByGroup).filter((group) => !MODEL_GROUP_ORDER.includes(group))];
+
+    groups.forEach((group) => {
+      const groupModels = modelsByGroup[group];
+      if (!groupModels?.length) return;
+      const section = document.createElement("section");
+      section.className = "model-download-group";
+      const heading = document.createElement("h3");
+      heading.textContent = `${group} Models`;
+      section.appendChild(heading);
+
+      groupModels.forEach((model) => {
+        const row = document.createElement("div");
+        row.className = "model-download-row";
+
+        const details = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = model.presentation.label;
+        const availability = document.createElement("span");
+        availability.className = `model-availability ${model.installed ? "installed" : "missing"}`;
+        availability.textContent = model.installed
+          ? `Installed${formatModelSize(model.size_bytes) ? ` · ${formatModelSize(model.size_bytes)}` : ""}`
+          : "Missing";
+        details.append(name, availability);
+        row.appendChild(details);
+
+        if (!model.installed) {
+          const button = document.createElement("button");
+          button.className = "purple-button download-model-button";
+          button.type = "button";
+          button.textContent = "Download";
+          button.addEventListener("click", () => downloadMissingModels([model.name]));
+          row.appendChild(button);
+        }
+        section.appendChild(row);
+      });
+      list.appendChild(section);
+    });
+  } catch (error) {
+    console.error("Could not load model status:", error);
+    setModelDownloadStatus("Could not check installed models.", true);
+    setModelDownloadSummary("Unavailable");
+  }
+}
+
+async function downloadMissingModels(modelNames = null) {
+  if (!window.eel || typeof eel.downloadMissingModels !== "function") return;
+  setModelDownloadButtonsDisabled(true);
+  setModelDownloadStatus("Downloading models… This can take a few minutes.");
+
+  try {
+    const result = await eel.downloadMissingModels(modelNames)();
+    if (!result?.ok) {
+      setModelDownloadStatus(
+        result?.failures ? "Some models could not be downloaded. Check your internet connection and try again." : (result?.message || "Could not download models."),
+        true
+      );
+      return;
+    }
+    setModelDownloadStatus(result.message || "Model download complete.");
+    await loadModelStatus();
+  } catch (error) {
+    console.error("Could not download models:", error);
+    setModelDownloadStatus(`Could not download models: ${error}`, true);
+  } finally {
+    setModelDownloadButtonsDisabled(false);
+  }
+}
+
+const FALLBACK_PRIVATE_SERVER_KEYS = [
+  "fallback_private_server_link_1",
+  "fallback_private_server_link_2",
+  "fallback_private_server_link_3",
+];
+
+async function openFallbackPrivateServersPopup() {
+  const modal = document.getElementById("fallback-private-servers-modal");
+  if (!modal) return;
+
+  const settings = await loadAllSettings();
+  FALLBACK_PRIVATE_SERVER_KEYS.forEach((key) => {
+    const input = document.getElementById(key);
+    if (input) input.value = settings[key] || "";
+  });
+  modal.style.display = "flex";
+}
+
+function closeFallbackPrivateServersPopup() {
+  const modal = document.getElementById("fallback-private-servers-modal");
+  if (modal) modal.style.display = "none";
+}
+
+async function saveFallbackPrivateServersPopup() {
+  for (const key of FALLBACK_PRIVATE_SERVER_KEYS) {
+    const input = document.getElementById(key);
+    if (input) await saveSetting(input, "general");
+  }
+  closeFallbackPrivateServersPopup();
+}
+
+$(document)
+  .on("click", "#manage-fallback-private-servers-button", (event) => {
+    event.preventDefault();
+    openFallbackPrivateServersPopup();
+  })
+  .on("click", "#cancel-fallback-private-servers-button", (event) => {
+    event.preventDefault();
+    closeFallbackPrivateServersPopup();
+  })
+  .on("click", "#save-fallback-private-servers-button", async (event) => {
+    event.preventDefault();
+    await saveFallbackPrivateServersPopup();
+  })
+  .on("click", "#fallback-private-servers-modal", function (event) {
+    if (event.target === this) closeFallbackPrivateServersPopup();
+  });
+
+function initializeDragAndDrop() {
+  const dragContainers = document.querySelectorAll(".drag-list-container");
+
+  dragContainers.forEach((container) => {
+    if (container.dataset.dndInitialized === "true") return;
+    container.dataset.dndInitialized = "true";
+
+    let draggedElement = null;
+
+    container.addEventListener("dragstart", (e) => {
+      draggedElement = e.target.closest(".drag-item");
+      if (!draggedElement || draggedElement.classList.contains("priority-locked")) {
+        e.preventDefault();
+        draggedElement = null;
+        return;
+      }
+      draggedElement.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/html", draggedElement.outerHTML);
+    });
+
+    container.addEventListener("dragend", (e) => {
+      if (draggedElement) {
+        draggedElement.classList.remove("dragging");
+        draggedElement = null;
+        if (typeof reapplyPriorityLockedPositions === "function") {
+          reapplyPriorityLockedPositions(container);
+        }
+        saveDragOrder(container);
+      }
+    });
+
+    container.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+
+      const draggable = container.querySelector(".drag-item.dragging");
+      if (!draggable) return;
+
+      const afterElement = getDragAfterElement(container, e.clientY);
+      if (afterElement == null) {
+        container.appendChild(draggable);
+      } else {
+        container.insertBefore(draggable, afterElement);
+      }
+      if (typeof reapplyPriorityLockedPositions === "function") {
+        reapplyPriorityLockedPositions(container);
+      }
+    });
+
+    container.addEventListener("dragenter", (e) => {
+      e.preventDefault();
+    });
+
+    container.addEventListener("drop", (e) => {
+      e.preventDefault();
+    });
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [
+    ...container.querySelectorAll(
+      ".drag-item:not(.dragging):not(.priority-locked)"
+    ),
+  ];
+
+  return draggableElements.reduce(
+    (closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    },
+    { offset: Number.NEGATIVE_INFINITY }
+  ).element;
+}
+
+function saveDragOrder(container) {
+  const order =
+    typeof buildPriorityOrderFromContainer === "function"
+      ? buildPriorityOrderFromContainer(container)
+      : Array.from(container.querySelectorAll(".drag-item[data-id]")).map(
+          (item) => item.dataset.id
+        );
+
+  // Save to settings
+  const data = { task_priority_order: order };
+  eel.saveDictProfileSettings(data);
+}
+
+function updatePriorityLockHeaderVisibility(container, searchTerm = "") {
+  if (!container) return;
+  const term = String(searchTerm || "").toLowerCase().trim();
+  container.querySelectorAll(".priority-lock-header").forEach((header) => {
+    const text = header.textContent.toLowerCase();
+    header.style.display = !term || text.includes(term) ? "" : "none";
+  });
+}
+
+function initializePrioritySearch() {
+  const searchInput = document.getElementById("priority-search-input");
+  if (!searchInput) return;
+
+    // Remove any existing event listener to prevent duplicates
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+  
+    newSearchInput.addEventListener("input", (e) => {
+      const searchTerm = e.target.value.toLowerCase().trim();
+      const container = document.getElementById("task_priority_order-container");
+    if (!container) return;
+
+    const items = container.querySelectorAll(".drag-item");
+    items.forEach((item) => {
+      const text =
+        item.querySelector(".drag-text")?.textContent.toLowerCase() || "";
+      if (searchTerm === "" || text.includes(searchTerm)) {
+          item.style.display = "";
+      } else {
+          item.style.display = "none";
+      }
+    });
+    updatePriorityLockHeaderVisibility(container, searchTerm);
+  });
+}
+
+let priorityQuickActionsInitialized = false;
+
+function initializeQuickActions() {
+  if (priorityQuickActionsInitialized) return;
+  priorityQuickActionsInitialized = true;
+
+  // Handle move to top buttons
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("move-to-top")) {
+      const item = e.target.closest(".drag-item");
+      const container = item?.parentElement;
+      if (!container || !item || item.classList.contains("priority-locked")) {
+        return;
+      }
+      const unlocked = [
+        ...container.querySelectorAll(".drag-item:not(.priority-locked)"),
+      ];
+      const firstUnlocked = unlocked[0];
+      if (firstUnlocked) {
+        container.insertBefore(item, firstUnlocked);
+      }
+      if (typeof reapplyPriorityLockedPositions === "function") {
+        reapplyPriorityLockedPositions(container);
+      }
+      saveDragOrder(container);
+    }
+
+    // Handle move to bottom buttons
+    if (e.target.classList.contains("move-to-bottom")) {
+      const item = e.target.closest(".drag-item");
+      const container = item?.parentElement;
+      if (!container || !item || item.classList.contains("priority-locked")) {
+        return;
+      }
+      const unlocked = [
+        ...container.querySelectorAll(".drag-item:not(.priority-locked)"),
+      ];
+      const lastUnlocked = unlocked[unlocked.length - 1];
+      if (lastUnlocked) {
+        if (lastUnlocked.nextSibling) {
+          container.insertBefore(item, lastUnlocked.nextSibling);
+        } else {
+          container.appendChild(item);
+        }
+      }
+      if (typeof reapplyPriorityLockedPositions === "function") {
+        reapplyPriorityLockedPositions(container);
+      }
+      saveDragOrder(container);
+    }
+  });
+}
+
+async function resetTaskPriorities() {
+  const confirmReset = confirm(
+    "Are you sure you want to reset task priorities to default values? This action cannot be undone."
+  );
+  if (!confirmReset) return;
+
+  try {
+    const success = await eel.resetTaskPrioritiesToDefault()();
+    if (!success) {
+      alert("Failed to reset task priorities. Default order may be missing.");
+      return;
+    }
+
+    const settings = await loadAllSettings();
+    loadInputs(settings);
+    if (typeof loadTasks === "function") {
+      await loadTasks();
+    }
+    initializePrioritySearch();
+    alert("Successfully reset task priorities to defaults.");
+  } catch (error) {
+    console.error("Error resetting task priorities:", error);
+    alert("An error occurred while resetting task priorities.");
+  }
+}
+
+$("#config-placeholder")
+  .load("../htmlImports/tabs/config.html", loadConfig) //load config tab
+  .on("click", ".config-tab-item", (event) =>
+    switchConfigTab(event.currentTarget)
+  ) //navigate between fields
+  .on("click", "#reset-task-priorities-button", (event) => {
+    event.preventDefault();
+    resetTaskPriorities();
+  });
+
+/*
+=============================================
+Profiles subtab logic (migrated from tabs/profiles.js)
+=============================================
+*/
+
+async function loadProfiles() {
+  const settings = await loadAllSettings();
+  loadInputs(settings);
+
+  // Load profile list
+  await loadProfileList();
+
+  // Set up file input event listener after HTML is loaded
+  setupFileInputListener();
+}
+
+async function loadProfileList() {
+  try {
+    const profiles = await eel.listProfiles()();
+    const currentProfile = await eel.getCurrentProfile()();
+
+    // Update current profile display
+    const currentProfileDisplay = document.getElementById(
+      "current-profile-display"
+    );
+    if (currentProfileDisplay) {
+      currentProfileDisplay.textContent = currentProfile;
+    }
+
+    // Update profile list
+    const profileList = document.getElementById("profile-list");
+    if (profileList) {
+      profileList.innerHTML = "";
+      profiles.forEach((profile) => {
+        const isActive = profile === currentProfile;
+        const profileItem = document.createElement("div");
+        profileItem.className = `profile-item ${isActive ? "active" : ""}`;
+        profileItem.innerHTML = `
+          <div style="display: flex; align-items: center;">
+            <span class="profile-item-name"></span>
+            ${
+              isActive
+                ? '<span class="current-profile-badge">ACTIVE</span>'
+                : ""
+            }
+          </div>
+          <div class="profile-item-actions">
+            ${
+              !isActive
+                ? '<button class="profile-btn profile-btn-primary">Switch</button>'
+                : ""
+            }
+            ${
+              !isActive && profiles.length > 1
+                ? '<button class="profile-btn profile-btn-danger">Delete</button>'
+                : ""
+            }
+          </div>
+        `;
+        profileItem.querySelector(".profile-item-name").textContent = profile;
+        profileItem
+          .querySelector(".profile-btn-primary")
+          ?.addEventListener("click", () => switchToProfile(profile));
+        profileItem
+          .querySelector(".profile-btn-danger")
+          ?.addEventListener("click", () => deleteProfileConfirm(profile));
+        profileList.appendChild(profileItem);
+      });
+    }
+
+    // Update duplicate source dropdown
+    const duplicateSelect = document.getElementById("duplicate-source-profile");
+    if (duplicateSelect) {
+      duplicateSelect.innerHTML = "";
+      profiles.forEach((profile) => {
+        const option = document.createElement("option");
+        option.value = profile;
+        option.textContent = profile;
+        if (profile === currentProfile) {
+          option.selected = true;
+        }
+        duplicateSelect.appendChild(option);
+      });
+    }
+
+    // Update export profile dropdown
+    const exportSelect = document.getElementById("export-profile-select");
+    if (exportSelect) {
+      exportSelect.innerHTML = "";
+      profiles.forEach((profile) => {
+        const option = document.createElement("option");
+        option.value = profile;
+        option.textContent = profile;
+        if (profile === currentProfile) {
+          option.selected = true;
+        }
+        exportSelect.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error("Error loading profiles:", error);
+  }
+}
+
+async function switchToProfile(profileName) {
+  try {
+    const [success, message] = await eel.switchProfile(profileName)();
+    if (success) {
+      showProfileStatus("create-profile-status", message, "success");
+
+      // Fully refresh GUI like a page reload
+      await refreshAllSettings();
+
+      // Reload profile list
+      await loadProfileList();
+    } else {
+      showProfileStatus("create-profile-status", message, "error");
+    }
+  } catch (error) {
+    showProfileStatus("create-profile-status", `Error: ${error}`, "error");
+  }
+}
+
+async function refreshAllSettings() {
+  try {
+    // Load all settings from the new profile
+    const settings = await loadAllSettings();
+
+    // Update all input elements with new settings
+    loadInputs(settings);
+    updateDiscordUniversalRouteText();
+
+    // Reload gather tab (field settings)
+    const currentGatherTab = document.querySelector(".gather-tab-item.active");
+    if (currentGatherTab && typeof switchGatherTab === "function") {
+      await switchGatherTab(currentGatherTab);
+    } else if (typeof switchGatherTab === "function") {
+      // Default to field 1 if no active tab
+      const field1Tab = document.getElementById("field-1");
+      if (field1Tab) await switchGatherTab(field1Tab);
+    }
+
+    // Reload collect tab
+    if (typeof loadCollect === "function") {
+      await loadCollect();
+    }
+
+    // Reload boost tab
+    if (typeof loadBoost === "function") {
+      loadBoost();
+    }
+
+    // Reload kill tab
+    if (typeof loadKill === "function") {
+      loadKill();
+    }
+
+    // Reload quests tab
+    if (typeof loadQuests === "function") {
+      loadQuests();
+    }
+
+    // Reload planters tab
+    if (typeof loadPlanters === "function") {
+      await loadPlanters();
+    }
+
+    // Reload home tasks
+    if (typeof loadTasks === "function") {
+      await loadTasks();
+    }
+
+    // Reload config tab
+    if (typeof loadConfig === "function") {
+      await loadConfig();
+    }
+
+    console.log("All settings refreshed for new profile");
+  } catch (error) {
+    console.error("Error refreshing settings:", error);
+  }
+}
+
+function updateDiscordUniversalRouteText() {
+  const modeElement = document.getElementById("discord_delivery_mode");
+  const webhookInput = document.getElementById("webhook_link");
+  const channelInput = document.getElementById("discord_channel_id");
+  const botTokenInput = document.getElementById("discord_bot_token");
+  if (!modeElement || !webhookInput || !channelInput) return;
+
+  const mode = getDropdownValue(modeElement) || "both";
+  const webhookForm = webhookInput.closest("form");
+  const channelForm = channelInput.closest("form");
+  const botTokenForm = botTokenInput?.closest("form");
+
+  if (botTokenForm) botTokenForm.style.display = mode === "webhook" ? "none" : "flex";
+  if (webhookForm) webhookForm.style.display = mode === "discord_bot" ? "none" : "flex";
+  if (channelForm) channelForm.style.display = mode === "discord_bot" ? "flex" : "none";
+}
+
+async function createNewProfile() {
+  const nameInput = document.getElementById("new-profile-name");
+  const name = nameInput.value.trim();
+
+  if (!name) {
+    showProfileStatus(
+      "create-profile-status",
+      "Please enter a profile name",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    const [success, message] = await eel.createProfile(name)();
+    if (success) {
+      showProfileStatus("create-profile-status", message, "success");
+      nameInput.value = "";
+      await loadProfileList();
+    } else {
+      showProfileStatus("create-profile-status", message, "error");
+    }
+  } catch (error) {
+    showProfileStatus("create-profile-status", `Error: ${error}`, "error");
+  }
+}
+
+async function deleteProfileConfirm(profileName) {
+  if (
+    confirm(
+      `Are you sure you want to delete the profile "${profileName}"? This action cannot be undone.`
+    )
+  ) {
+    try {
+      const [success, message] = await eel.deleteProfile(profileName)();
+      if (success) {
+        showProfileStatus("create-profile-status", message, "success");
+        await loadProfileList();
+      } else {
+        showProfileStatus("create-profile-status", message, "error");
+      }
+    } catch (error) {
+      showProfileStatus("create-profile-status", `Error: ${error}`, "error");
+    }
+  }
+}
+
+async function duplicateExistingProfile() {
+  const sourceSelect = document.getElementById("duplicate-source-profile");
+  const newNameInput = document.getElementById("duplicate-new-name");
+
+  const sourceName = sourceSelect.value;
+  const newName = newNameInput.value.trim();
+
+  if (!newName) {
+    showProfileStatus(
+      "duplicate-profile-status",
+      "Please enter a new profile name",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    const [success, message] = await eel.duplicateProfile(
+      sourceName,
+      newName
+    )();
+    if (success) {
+      showProfileStatus("duplicate-profile-status", message, "success");
+      newNameInput.value = "";
+      await loadProfileList();
+    } else {
+      showProfileStatus("duplicate-profile-status", message, "error");
+    }
+  } catch (error) {
+    showProfileStatus("duplicate-profile-status", `Error: ${error}`, "error");
+  }
+}
+
+async function exportProfile() {
+  const profileSelect = document.getElementById("export-profile-select");
+  const profileName = profileSelect.value;
+
+  if (!profileName) {
+    showProfileStatus(
+      "export-profile-status",
+      "Please select a profile to export",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    const result = await eel.exportProfile(profileName)();
+    const [success, contentOrMessage, filename] = result;
+
+    if (success) {
+      // Create download link for the JSON content
+      const blob = new Blob([contentOrMessage], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+
+      showProfileStatus(
+        "export-profile-status",
+        `Profile exported as ${filename}`,
+        "success"
+      );
+    } else {
+      showProfileStatus("export-profile-status", contentOrMessage, "error");
+    }
+  } catch (error) {
+    showProfileStatus("export-profile-status", `Error: ${error}`, "error");
+  }
+}
+
+function showImportModal(fileName) {
+  const modal = document.getElementById("import-profile-modal");
+  const selectedFileSpan = document.getElementById("modal-selected-file");
+  const profileNameInput = document.getElementById("modal-profile-name");
+
+  if (modal && selectedFileSpan && profileNameInput) {
+    selectedFileSpan.textContent = fileName;
+    profileNameInput.value = "imported_profile";
+    modal.style.display = "flex";
+
+    // Focus and select the input after modal is shown
+    setTimeout(() => {
+      profileNameInput.focus();
+      profileNameInput.select();
+
+      // Add keyboard event listener for Enter/Escape
+      const handleKeyPress = function (e) {
+        if (e.key === "Enter") {
+          confirmImportProfile();
+        } else if (e.key === "Escape") {
+          hideImportModal();
+        }
+      };
+
+      profileNameInput.addEventListener("keydown", handleKeyPress);
+
+      // Store the handler so we can remove it later
+      profileNameInput._keyHandler = handleKeyPress;
+    }, 100);
+  }
+}
+
+function hideImportModal() {
+  const modal = document.getElementById("import-profile-modal");
+  const profileNameInput = document.getElementById("modal-profile-name");
+  const fileInput = document.getElementById("import-profile-file");
+  const fileNameDisplay = document.getElementById("import-file-name");
+
+  if (modal) {
+    modal.style.display = "none";
+  }
+
+  // Clean up keyboard event listener
+  if (profileNameInput && profileNameInput._keyHandler) {
+    profileNameInput.removeEventListener(
+      "keydown",
+      profileNameInput._keyHandler
+    );
+    delete profileNameInput._keyHandler;
+  }
+
+  // Reset file input and display
+  if (fileInput) {
+    fileInput.value = "";
+    delete fileInput.dataset.selectedFile;
+  }
+
+  if (fileNameDisplay) {
+    fileNameDisplay.textContent = "No file selected";
+  }
+}
+
+async function confirmImportProfile() {
+  const fileInput = document.getElementById("import-profile-file");
+  const profileNameInput = document.getElementById("modal-profile-name");
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    showProfileStatus(
+      "import-profile-status",
+      "No file selected for import",
+      "error"
+    );
+    hideImportModal();
+    return;
+  }
+
+  const profileName = profileNameInput.value.trim();
+  if (!profileName) {
+    alert("Please enter a profile name");
+    profileNameInput.focus();
+    return;
+  }
+
+  const file = fileInput.files[0];
+
+  try {
+    // Read file content as text
+    const fileContent = await file.text();
+
+    // Import the profile
+    const [success, message] = await eel.importProfileContent(
+      fileContent,
+      profileName
+    )();
+
+    if (success) {
+      showProfileStatus("import-profile-status", message, "success");
+      hideImportModal();
+      await loadProfileList();
+    } else {
+      showProfileStatus("import-profile-status", message, "error");
+      // Don't hide modal on error so user can try again
+    }
+  } catch (error) {
+    showProfileStatus("import-profile-status", `Error: ${error}`, "error");
+    // Don't hide modal on error
+  }
+}
+
+// Set up file input event listener (called after HTML is loaded)
+function setupFileInputListener() {
+  const importFileInput = document.getElementById("import-profile-file");
+  if (importFileInput) {
+    importFileInput.addEventListener("change", function (e) {
+      const fileNameDisplay = document.getElementById("import-file-name");
+      console.log("File input changed, files:", e.target.files);
+
+      if (e.target.files && e.target.files.length > 0) {
+        const fileName = e.target.files[0].name;
+        console.log("Selected file:", fileName);
+
+        // Store the selected file temporarily
+        e.target.dataset.selectedFile = fileName;
+
+        // Show the import modal
+        showImportModal(fileName);
+
+        console.log("Modal shown for file:", fileName);
+      } else {
+        console.log("No files selected");
+        if (fileNameDisplay) {
+          fileNameDisplay.textContent = "No file selected";
+        }
+        delete e.target.dataset.selectedFile;
+      }
+    });
+    console.log("File input listener set up successfully");
+  } else {
+    console.error("Could not find import-profile-file element");
+  }
+}
+
+function showProfileStatus(elementId, message, type) {
+  const statusElement = document.getElementById(elementId);
+  if (statusElement) {
+    const status = document.createElement("div");
+    status.className = `profile-status ${type}`;
+    status.textContent = message;
+    statusElement.replaceChildren(status);
+    // Clear status after 5 seconds
+    setTimeout(() => {
+      statusElement.innerHTML = "";
+    }, 5000);
+  }
+}
+
+// Trigger beta update from commit hash
+async function triggerBetaUpdate() {
+  const el = document.getElementById("beta_commit_hash");
+  if (!el) return alert("Beta commit input not found.");
+  const hash = el.value.trim();
+  const re = /^[0-9a-fA-F]{7}$/;
+  if (!re.test(hash)) return alert("Please enter a valid 7-character hex commit hash.");
+
+  if (!confirm(`Update macro from commit ${hash}? This will backup and apply files.`)) return;
+
+  try {
+    if (window.updateProgress) window.updateProgress(0, `Starting update to ${hash}`);
+    // call backend updater
+    const res = await eel.updateFromHash(hash)();
+    if (res) {
+      alert("Update started. The app may close to apply the update.");
+    } else {
+      alert("Update failed or was aborted. Check logs for details.");
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Error initiating update: " + e);
+  }
+}
+
+function openLogFolder() {
+  eel.openLogFolder()();
+}
+
+// Export debug folder (profile, logs, system info)
+async function exportDebugFolder() {
+  try {
+    const current = await eel.getCurrentProfile()();
+    const res = await eel.exportDebugZip(current)();
+    if (!res) return alert("Failed to export debug folder.");
+    if (res[0] !== true) return alert("Export failed: " + res[1]);
+
+    const b64 = res[1];
+    const filename = res[2] || `fuzzy_debug.zip`;
+
+    const byteCharacters = atob(b64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "application/zip" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (e) {
+    console.error(e);
+    alert("Failed to export debug folder: " + e);
+  }
+}

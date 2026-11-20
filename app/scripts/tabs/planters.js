@@ -1,0 +1,607 @@
+/*
+=============================================
+Planters Tab
+=============================================
+*/
+
+//when the planter slider changes
+function changePlanterMode(){
+    const ele = document.getElementById("planters_mode")
+    saveSetting(ele, 'profile')
+    //show the corresponding tab
+    const planterMode = {
+        0: "off",
+        1: "manual",
+        2: "auto"
+    }
+    Array.from(document.getElementsByClassName("planter-tab")).forEach(x => x.style.display="none")
+    
+    document.getElementById(`planters-${planterMode[ele.value]}`).style.display = "block"
+}
+
+const planters = Object.keys(planterIcons)
+const planterArray = toImgArray(planterIcons)
+const fields = Object.keys(fieldNectarIcons)
+const fieldNectarArray = toImgArray(fieldNectarIcons, true)
+const nectars = Object.keys(nectarIcons)
+const nectarArray = toImgArray(nectarIcons)
+
+function fieldDropDownHTML(id){
+    return buildInput(id,{
+        name: "dropdown",
+        data: fieldNectarArray,
+        triggerFunction: "saveSetting(this, 'profile')",
+        length: 11.5    
+    })
+}
+function planterDropDownHTML(id){
+    return buildInput(id,{
+        name: "dropdown",
+        data: planterArray,
+        triggerFunction: "savePlanterSettingAndRefresh(this)",
+        length: 11.5
+    })
+}
+function nectarDropDownHTML(id){
+    return buildInput(id,{
+        name: "dropdown",
+        data: nectarArray,
+        triggerFunction: "saveSetting(this, 'profile')",
+        length: 11.5
+    })
+}
+
+function planterHotbarSlotHTML(settingId, domId){
+    let options = `<option value="0">0 - Inventory</option>`
+    for (let slot = 1; slot <= 7; slot++){
+        options += `<option value="${slot}">${slot}</option>`
+    }
+    return `
+        <select id="${domId}" data-setting-id="${settingId}" class="poppins-regular planter-hotbar-slot-select" onchange="savePlanterHotbarSlot(this)">
+            ${options}
+        </select>
+    `
+}
+
+function planterIconHTML(planter){
+    const icon = planterIcons[planter]
+    const name = toTitleCase(planter.replaceAll("_"," "))
+    return icon ? `<img src="./assets/icons/${icon}.png" alt="${name}">` : ""
+}
+
+function canonicalPlanterKey(planter){
+    return String(planter || "").replaceAll(" ", "_")
+}
+
+function planterHotbarTileHTML(planter, prefix){
+    const settingId = `planter_hotbar_${planter}_slot`
+    const domId = `${prefix}_${settingId}`
+    const name = toTitleCase(planter.replaceAll("_"," "))
+    return `
+        <div class="planter-hotbar-tile">
+            <div class="planter-hotbar-planter">
+                ${planterIconHTML(planter)}
+                <span>${name}</span>
+            </div>
+            ${planterHotbarSlotHTML(settingId, domId)}
+        </div>
+    `
+}
+
+function loadSelectedPlanterHotbarSlots(containerId, enabledPlanters){
+    const container = document.getElementById(containerId)
+    if (!container) return
+    container.innerHTML = ""
+    if (!enabledPlanters.length){
+        container.innerHTML = `<p class="planter-hotbar-empty">No planters selected.</p>`
+        return
+    }
+    enabledPlanters.forEach(planter => {
+        container.innerHTML += planterHotbarTileHTML(planter, containerId)
+    })
+}
+
+function getManualSelectedPlanters(settings){
+    const enabled = []
+    for (let cycle = 1; cycle <= 5; cycle++){
+        for (let slot = 1; slot <= 3; slot++){
+            const planter = settings[`cycle${cycle}_${slot}_planter`]
+            const planterKey = canonicalPlanterKey(planter)
+            if (planterKey && planterKey !== "none" && !enabled.includes(planterKey)){
+                enabled.push(planterKey)
+            }
+        }
+    }
+    return enabled
+}
+
+function getAutoEnabledPlanters(settings){
+    return planters.filter(planter => {
+        if (planter === "none") return false
+        return !!settings[`auto_planter_${planter}`]
+    })
+}
+
+function loadPlanterHotbarSections(settings){
+    loadSelectedPlanterHotbarSlots("manual-selected-planter-hotbar-slots", getManualSelectedPlanters(settings))
+    loadSelectedPlanterHotbarSlots("auto-selected-planter-hotbar-slots", getAutoEnabledPlanters(settings))
+}
+
+async function savePlanterSettingAndRefresh(ele){
+    await saveSetting(ele, 'profile')
+    const settings = await loadAllSettings()
+    loadPlanterHotbarSections(settings)
+    loadInputsWithDuplicateSelects(settings)
+}
+
+async function saveAutoPlanterEnabledAndRefresh(ele, planter){
+    await saveSetting(ele, 'profile')
+    updatePlanterRestrictionSummaries()
+    togglePlanterEnabledStyle(planter)
+    const settings = await loadAllSettings()
+    loadPlanterHotbarSections(settings)
+    loadInputsWithDuplicateSelects(settings)
+    updatePlanterDropToggles(settings)
+}
+
+async function savePlanterHotbarSlot(ele){
+    const id = ele.dataset.settingId
+    await saveSetting(ele, 'profile')
+    const matchingSelects = document.querySelectorAll(`select[data-setting-id="${id}"]`)
+    matchingSelects.forEach(select => {
+        if (select !== ele) select.value = ele.value
+    })
+}
+
+function refreshPlanterHotbarSlotSelects(settings){
+    Object.entries(settings).forEach(([key, value]) => {
+        if (!key.startsWith("planter_hotbar_") || !key.endsWith("_slot")) return
+        document.querySelectorAll(`select[data-setting-id="${key}"]`).forEach(select => {
+            select.value = value
+        })
+    })
+}
+
+//a planter drop can only be turned on while one of the planters it uses is selected
+async function updatePlanterDropToggles(settings){
+    const dropPlanters = await eel.getPlanterDropPlanters()()
+    Object.entries(dropPlanters).forEach(([settingId, names]) => {
+        const box = document.querySelector(`input[data-setting-id="${settingId}"]`)
+        const hint = document.getElementById(`${box.id}_hint`)
+        const unavailable = !names.some(name => settings[`auto_planter_${name}`]) && !box.checked
+        box.disabled = unavailable
+        hint.style.display = unavailable ? "" : "none"
+    })
+}
+
+async function savePlanterDropSetting(ele){
+    await saveSetting(ele, 'profile')
+    updatePlanterDropToggles(await loadAllSettings())
+}
+
+function loadInputsWithDuplicateSelects(settings){
+    loadInputs(settings)
+    refreshPlanterHotbarSlotSelects(settings)
+}
+
+
+async function loadPlanters(){
+    const cycleElement = document.getElementById("manual-planters-cycles")
+    // reset the container to its original header content to avoid duplicates
+    cycleElement.innerHTML = `
+            <h2>Planter Cycles</h2>
+            <p style = "font-weight:500; font-size:1rem;">The macro can place and collect up to 3 planters at once each cycle. Setting a field or planter as 'none' will make the macro ignore that slot</p>
+        `
+    for (let i=1; i < 6;i++){
+        const html = 
+        `
+        <div class="seperator" style="margin-bottom: 1rem;"></div>
+        <h3 class="poppins-semibold">Cycle ${i}</h3>
+        <table style="margin-top: 1rem; row-gap: 1rem;">
+            <tr>
+                <td><h4 class="poppins-regular">Planters:</h4></td>
+                <td>${planterDropDownHTML(`cycle${i}_1_planter`)}</td>
+                <td>${planterDropDownHTML(`cycle${i}_2_planter`)}</td>
+                <td>${planterDropDownHTML(`cycle${i}_3_planter`)}</td>
+            </tr>
+            <tr>
+                <td><h4 class="poppins-regular">Fields:</h4></td>
+                <td>${fieldDropDownHTML(`cycle${i}_1_field`)}</td>
+                <td>${fieldDropDownHTML(`cycle${i}_2_field`)}</td>
+                <td>${fieldDropDownHTML(`cycle${i}_3_field`)}</td>
+            </tr>
+            <tr>
+                <td>
+                    <h4 class="poppins-regular">Gather in Planter Field:</h4>
+                    <div class="poppins-regular" style="font-size:0.9rem; color: #adb4bc">The field's gather settings match<br>those in the gather tab</div>
+                </td>
+                
+                <td><label class="checkbox-container" style="margin-top:-0.6rem">
+                    <input type="checkbox" id = "cycle${i}_1_gather" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label></td>
+                <td><label class="checkbox-container" style="margin-top:-0.6rem">
+                    <input type="checkbox" id = "cycle${i}_2_gather" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label></td>
+                <td><label class="checkbox-container" style="margin-top:-0.6rem">
+                    <input type="checkbox" id = "cycle${i}_3_gather" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label></td>
+            </tr>
+            <tr>
+                <td>
+                    <h4 class="poppins-regular">Glitter:</h4>
+                    <div class="poppins-regular" style="font-size:0.9rem; color: #adb4bc">Use Glitter when the placing a planter.<br>Speeds up planter growth by 25%</div>
+                </td>
+                <td><label class="checkbox-container" style="margin-top:-1.2rem">
+                    <input type="checkbox" id = "cycle${i}_1_glitter" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label></td>
+                <td><label class="checkbox-container" style="margin-top:-1.2rem">
+                    <input type="checkbox" id = "cycle${i}_2_glitter" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label></td>
+                <td><label class="checkbox-container" style="margin-top:-1.2rem">
+                    <input type="checkbox" id = "cycle${i}_3_glitter" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label></td>
+            </tr>
+        </table>
+        `
+        cycleElement.innerHTML += html
+    }
+
+    const nectarPriorityElement = document.getElementById("auto-nectar-priority")
+    // clear previous content to prevent duplication when reloading
+    nectarPriorityElement.innerHTML = ""
+    //auto planter's nectar priority
+    for(let i = 0; i < nectars.length; i++){
+        const html = `
+        <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 5%; margin-top:1rem" ;="">
+            ${nectarDropDownHTML(`auto_priority_${i}_nectar`)}
+            <input type="text" id="auto_priority_${i}_min" style="width: 10rem; margin-top: 0.6rem;" class="poppins-regular textbox" data-input-type="int" data-input-limit="3" onkeypress="return textboxRestriction(this, event)" onchange="saveSetting(this, 'profile')">
+        </form>
+        `
+        nectarPriorityElement.innerHTML += html
+    }
+
+    // Note: Allowed-planters is merged into per-planter panels (enable toggle embedded in each panel)
+    
+    const planterFieldRestrictionsElement = document.getElementById("auto-planter-field-restrictions")
+    // clear previous content to prevent duplication when reloading
+    planterFieldRestrictionsElement.innerHTML = ""
+    // For each planter, create a collapsible section that shows allowed fields when expanded
+    for(let i = 0; i < planters.length; i++){
+        if (planters[i] == "none") continue
+        let fieldsHTML = ""
+        for(let j = 0; j < fields.length; j++){
+            if (fields[j] == "none") continue
+            const fieldId = `auto_planter_${planters[i]}_field_${fields[j]}`
+            fieldsHTML += `
+                <div style="display:flex; align-items:center; gap:0.4rem; width: 220px;">
+                    <label style="white-space:nowrap; flex:1">${fieldNectarArray[j]}</label>
+                    <label class="checkbox-container" style="margin-top: 0;">
+                        <input type="checkbox" id="${fieldId}" onchange="saveSetting(this, 'profile'); updatePlanterRestrictionSummaries()">
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+            `
+        }
+        const summaryId = `planter_restriction_summary_${planters[i]}`
+        const enableId = `auto_planter_${planters[i]}`
+        const html = `
+        <details style="margin-top:0.6rem; transition: box-shadow 0.15s;">
+            <summary title="Click to expand and view allowed fields" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                    <label class="checkbox-container" style="margin:0;">
+                        <input type="checkbox" id="${enableId}" onchange="saveAutoPlanterEnabledAndRefresh(this, '${planters[i]}')">
+                        <span class="checkmark"></span>
+                    </label>
+                    <div>${planterArray[i]}</div>
+                </div>
+                <div style="font-size:0.9rem; color:#6b7280" id="${summaryId}">Allowed fields: 0</div>
+            </summary>
+            <div style="display:flex; flex-wrap:wrap; gap:0.6rem; padding-top:0.8rem;">
+                ${fieldsHTML}
+            </div>
+        </details>
+        `
+        planterFieldRestrictionsElement.innerHTML += html
+    }
+
+    const allowedFieldsElement = document.getElementById("auto-allowed-fields")
+    // clear previous content to prevent duplication when reloading
+    allowedFieldsElement.innerHTML = ""
+    //auto planter's nectar priority
+    for(let i = 0; i < fields.length; i++){
+        if (fields[i] == "none") continue
+        const html = `
+        <form style="display: flex; align-items:flex-start; justify-content: space-between; padding-right: 10%; margin-top:1rem" ;="">
+            <div style="width: 70%;">
+                <label>${fieldNectarArray[i]}</label>
+            </div>
+            <label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id="auto_field_${fields[i]}" onchange="saveSetting(this, 'profile')">
+                    <span class="checkmark"></span>
+                </label>
+        </form>
+        `
+        allowedFieldsElement.innerHTML += html
+    }
+
+    //load inputs
+    const settings = await loadAllSettings()
+    loadPlanterHotbarSections(settings)
+    loadInputsWithDuplicateSelects(settings)
+    updatePlanterDropToggles(settings)
+    // Ensure per-planter field keys default to allowed
+    try{
+        // For each per-planter-field checkbox, if the setting is not present in the profile,
+        // default it to checked (allowed) and persist to profile so it behaves as a default.
+        const pfInputs = document.querySelectorAll('input[id^="auto_planter_"][id*="_field_"]')
+        pfInputs.forEach(inp => {
+            if (!settings.hasOwnProperty(inp.id)){
+                inp.checked = true
+                try{ eel.saveProfileSetting(inp.id, true) }catch(e){}
+            }
+        })
+    }catch(e){
+        // ignore if DOM not ready or eel not available
+    }
+
+    // Update the planter restriction summaries after inputs have loaded
+    try{
+        updatePlanterRestrictionSummaries()
+    }catch(e){
+        // ignore if function not available yet
+    }
+    // load auto-planter JSON to set the global gather checkbox
+    try{
+        const autoData = await eel.getAutoPlanterData()()
+        const gatherCheckbox = document.getElementById("auto_planters_gather")
+        if (gatherCheckbox && autoData && typeof autoData.gather !== 'undefined'){
+            gatherCheckbox.checked = !!autoData.gather
+        }
+    }catch(e){
+        console.warn('Failed to load auto-planter data for gather flag', e)
+    }
+    //show the planter tab
+    changePlanterMode()
+}
+
+async function toggleAutoPlantersGather(val){
+    try{
+        await eel.setAutoPlanterGather(!!val)()
+    }catch(e){
+        console.warn('Failed to set auto planter gather flag', e)
+    }
+}
+
+function clearManualPlantersData(){
+    flashButton(document.getElementById("manual-planters-reset-btn"), () => eel.clearManualPlanters())
+}
+
+// Reset all auto-planter timers (harvest_time -> 0)
+function resetAutoPlantersTimersAll(){
+    flashButton(document.getElementById("auto-planters-reset-btn"), () => eel.resetAutoPlanterTimer('all'))
+}
+
+// Update the displayed "Allowed fields: X" summary for each planter
+function updatePlanterRestrictionSummaries(){
+    for(let i = 0; i < planters.length; i++){
+        if (planters[i] == "none") continue
+        const inputs = document.querySelectorAll(`input[id^="auto_planter_${planters[i]}_field_"]`)
+        let count = 0
+        inputs.forEach(x => { if (x.checked) count++ })
+        const summary = document.getElementById(`planter_restriction_summary_${planters[i]}`)
+        if (summary) summary.innerText = `Allowed fields: ${count}`
+        // Update visual style for enabled state
+        try{
+            togglePlanterEnabledStyle(planters[i])
+        }catch(e){ }
+    }
+}
+
+// Toggle visual highlight for a planter panel when globally enabled
+function togglePlanterEnabledStyle(planterName){
+    const summaryId = `planter_restriction_summary_${planterName}`
+    const enableCheckbox = document.getElementById(`auto_planter_${planterName}`)
+    const summaryElem = document.getElementById(summaryId)
+    if (!summaryElem) return
+    const detailsElem = summaryElem.closest('details')
+    if (!detailsElem) return
+    if (enableCheckbox && enableCheckbox.checked){
+        detailsElem.style.boxShadow = '0 0 0 2px rgba(96,165,250,0.12)'
+        detailsElem.style.borderRadius = '6px'
+        detailsElem.style.border = '1px solid rgba(96,165,250,0.25)'
+    } else {
+        detailsElem.style.boxShadow = ''
+        detailsElem.style.border = 'none'
+    }
+}
+
+function changePreset(ele){
+    const presetData = {
+        "blue": {
+            "auto_priority_0_nectar": "comforting",
+            "auto_priority_1_nectar": "motivating",
+            "auto_priority_2_nectar": "satisfying",
+            "auto_priority_3_nectar": "refreshing",
+            "auto_priority_4_nectar": "invigorating",
+            "auto_priority_0_min": 70,
+            "auto_priority_1_min": 80,
+            "auto_priority_2_min": 80,
+            "auto_priority_3_min": 80,
+            "auto_priority_4_min": 40,
+            "auto_field_sunflower": true,
+            "auto_field_dandelion": true,
+            "auto_field_mushroom": false,
+            "auto_field_blue_flower": true,
+            "auto_field_clover": true,
+            "auto_field_strawberry": true,
+            "auto_field_spider": true,
+            "auto_field_bamboo": false,
+            "auto_field_pineapple": true,
+            "auto_field_stump": false,
+            "auto_field_cactus": true,
+            "auto_field_pumpkin": false,
+            "auto_field_pine_tree": true,
+            "auto_field_rose": true,
+            "auto_field_mountain_top": false,
+            "auto_field_pepper": true,
+            "auto_field_coconut": false,
+        },
+        "red": {
+            "auto_priority_0_nectar": "invigorating",
+            "auto_priority_1_nectar": "refreshing",
+            "auto_priority_2_nectar": "motivating",
+            "auto_priority_3_nectar": "satisfying",
+            "auto_priority_4_nectar": "comforting",
+            "auto_priority_0_min": 70,
+            "auto_priority_1_min": 80,
+            "auto_priority_2_min": 80,
+            "auto_priority_3_min": 80,
+            "auto_priority_4_min": 40,
+            "auto_field_sunflower": true,
+            "auto_field_dandelion": true,
+            "auto_field_mushroom": false,
+            "auto_field_blue_flower": true,
+            "auto_field_clover": true,
+            "auto_field_strawberry": true,
+            "auto_field_spider": true,
+            "auto_field_bamboo": true,
+            "auto_field_pineapple": true,
+            "auto_field_stump": false,
+            "auto_field_cactus": true,
+            "auto_field_pumpkin": true,
+            "auto_field_pine_tree": true,
+            "auto_field_rose": true,
+            "auto_field_mountain_top": false,
+            "auto_field_pepper": true,
+            "auto_field_coconut": false,
+        },
+        "white": {
+            "auto_priority_0_nectar": "satisfying",
+            "auto_priority_1_nectar": "motivating",
+            "auto_priority_2_nectar": "refreshing",
+            "auto_priority_3_nectar": "comforting",
+            "auto_priority_4_nectar": "invigorating",
+            "auto_priority_0_min": 70,
+            "auto_priority_1_min": 80,
+            "auto_priority_2_min": 80,
+            "auto_priority_3_min": 80,
+            "auto_priority_4_min": 40,
+            "auto_field_sunflower": true,
+            "auto_field_dandelion": true,
+            "auto_field_mushroom": false,
+            "auto_field_blue_flower": true,
+            "auto_field_clover": true,
+            "auto_field_strawberry": true,
+            "auto_field_spider": true,
+            "auto_field_bamboo": true,
+            "auto_field_pineapple": true,
+            "auto_field_stump": false,
+            "auto_field_cactus": true,
+            "auto_field_pumpkin": false,
+            "auto_field_pine_tree": true,
+            "auto_field_rose": true,
+            "auto_field_mountain_top": false,
+            "auto_field_pepper": true,
+            "auto_field_coconut": false,
+        }
+    }
+    saveSetting(ele, "profile")
+    const preset = getInputValue(ele.id)
+    if (preset in presetData){
+        const data = presetData[preset]
+        loadInputs(data, save="profile")
+    }
+}
+
+$("#planters-placeholder")
+.load("../htmlImports/tabs/planters.html", loadPlanters)
+.on("click", "#export-planters-button", async (event) => {
+    event.preventDefault()
+
+    try{
+        const jsonSettings = await eel.exportPlanterSettings()()
+
+        if (jsonSettings){
+            let metadata = {}
+            try{
+                const parsedData = JSON.parse(jsonSettings)
+                metadata = parsedData.metadata || {}
+            }catch(e){}
+
+            await navigator.clipboard.writeText(jsonSettings)
+
+            let successMsg = "Planter settings exported and copied to clipboard!"
+            if (metadata.macro_version){
+                successMsg += `\n\nExport details:\nMacro version: ${metadata.macro_version}`
+            }
+            if (metadata.export_date){
+                successMsg += `\nExported: ${new Date(metadata.export_date).toLocaleString()}`
+            }
+
+            alert(successMsg)
+        } else {
+            alert("Failed to export planter settings.")
+        }
+    }catch(error){
+        console.error("Error exporting planter settings:", error)
+        alert("An error occurred while exporting planter settings.")
+    }
+})
+.on("click", "#import-planters-button", (event) => {
+    event.preventDefault()
+
+    const modal = document.getElementById("import-planters-modal")
+    const textarea = document.getElementById("import-planters-json-textarea")
+    textarea.value = ""
+    modal.style.display = "flex"
+})
+.on("click", "#cancel-import-planters-button", (event) => {
+    event.preventDefault()
+    document.getElementById("import-planters-modal").style.display = "none"
+})
+.on("click", "#confirm-import-planters-button", async (event) => {
+    event.preventDefault()
+
+    const textarea = document.getElementById("import-planters-json-textarea")
+    const jsonSettings = textarea.value.trim()
+
+    if (!jsonSettings){
+        alert("Please paste JSON settings to import.")
+        return
+    }
+
+    try{
+        const result = await eel.importPlanterSettings(jsonSettings)()
+
+        if (result && result.success){
+            await loadPlanters()
+            document.getElementById("import-planters-modal").style.display = "none"
+
+            let successMsg = "Successfully imported planter settings!"
+            if (result.macro_version && result.macro_version !== "unknown"){
+                successMsg += `\n\nMacro version: ${result.macro_version}`
+            }
+            if (typeof result.imported_settings_count !== "undefined"){
+                successMsg += `\nImported settings: ${result.imported_settings_count}`
+            }
+
+            alert(successMsg)
+        } else {
+            alert("Failed to import planter settings. Please check your JSON format.")
+        }
+    }catch(error){
+        console.error("Error importing planter settings:", error)
+        alert("An error occurred while importing planter settings. Please check your JSON format.")
+    }
+})
+.on("click", "#import-planters-modal", function(event) {
+    if (event.target === this){
+        $(this).hide()
+    }
+})

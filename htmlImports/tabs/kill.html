@@ -1,0 +1,356 @@
+<div class="page">
+  <div id="kill-nav" class="sub-nav-bar">
+    <div id="kill-regular" class="kill-tab-item">Mobs</div>
+    <div id="kill-boss" class="kill-tab-item">Bosses</div>
+  </div>
+  <div id="kill-regular-tab" class="sub-tab-panel">
+    <script>
+      const regularMobsParent = document.getElementById("kill-regular-tab");
+      buildStandardContainer(regularMobsParent, "Regular Mobs 🐞", "", [
+        {
+          id: "ladybug",
+          title: "Ladybugs",
+          desc: "Kill and loot ladybugs",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "rhinobeetle",
+          title: "Rhino Beetles",
+          desc: "Kill and loot rhino beetles",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "scorpion",
+          title: "Scorpions",
+          desc: "Kill and loot scoprions",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mantis",
+          title: "Mantises",
+          desc: "Kill and loot mantises",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "spider",
+          title: "Spider",
+          desc: "Kill and loot the spider",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "werewolf",
+          title: "Werewolf",
+          desc: "Kill and loot the werewolf",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(regularMobsParent, "Respawn Time Modifiers", "", [
+        {
+          id: "gifted_vicious",
+          title: "Gifted Vicious Bee",
+          desc: "Apply the 15% respawn time bonus from gifted vicious bee",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "stick_bug_amulet",
+          title: "Stick Bug Amulet",
+          desc: "Apply the -X% Monster Respawn Time from stick bug amulet",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            triggerFunction: saveGeneralTriggerFunction,
+            length: 8,
+          },
+        },
+        {
+          id: "icicles_beequip",
+          title: "Icicles Beequip",
+          desc: "Apply the -X% Monster Respawn Time from the icicles beequip",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 2,
+            triggerFunction: saveGeneralTriggerFunction,
+            length: 8,
+          },
+        },
+      ]);
+    </script>
+  </div>
+
+  <div id="kill-boss-tab" class="sub-tab-panel">
+    <script>
+      const bossMobsParent = document.getElementById("kill-boss-tab");
+      buildStandardContainer(bossMobsParent, "Stinger Hunt 🌙", "", [
+        {
+          id: "stinger_hunt",
+          title: "Enable Task",
+          desc: "Hunt and kill vicious bee when it is night",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stinger_spider",
+          title: "Spider",
+          desc: "Search for vicious bee in spider field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stinger_cactus",
+          title: "Cactus",
+          desc: "Search for vicious bee in cactus field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stinger_rose",
+          title: "Rose",
+          desc: "Search for vicious bee in rose field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stinger_mountain_top",
+          title: "Mountain Top",
+          desc: "Search for vicious bee in mountain top field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stinger_pepper",
+          title: "Pepper",
+          desc: "Search for vicious bee in pepper field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(bossMobsParent, "Stump Snail 🐌", "", [
+        {
+          id: "stump_snail",
+          title: "Enable Task",
+          desc: "Kill stump snail",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stump_snail_amulet",
+          title: "Amulet",
+          desc: "What to do with the stump snail amulet.<br><br><strong>Keep</strong> - select the 'keep old' option<br><strong>Replace</strong> - select the 'replace' option<br><strong>Stop</strong> - Do not select any option, stop the macro until the amulet is kept/replaced<br><strong>Wait for command</strong> - Do not select any option, stop the macro until it receives a command to keep or replace the amulet. (Requires a discord bot)",
+          type: {
+            name: "dropdown",
+            data: ["Keep", "Replace", "Stop", "Wait for command"],
+            triggerFunction: saveProfileTriggerFunction,
+            length: 12,
+          },
+        },
+        {
+          id: "stump_snail_pattern",
+          title: "Pattern",
+          desc: "How to fight the stump snail.<br><br><strong>Click</strong> - stand at the sprinkler and click<br><strong>AI Gather</strong> - gather at the sprinkler with AI Gathering, walking out for the Stump token list's tokens (Focus, Melody and so on) and back to the sprinkler. Needs the AI Gathering models.",
+          type: {
+            name: "dropdown",
+            data: ["Click", "AI Gather"],
+            triggerFunction: saveProfileTriggerFunction,
+            length: 12,
+          },
+        },
+        {
+          id: "stump_snail_balloon_interval",
+          title: "Regain Balloons Every (Minutes)",
+          desc: "Return to the Pine Field to regain balloons after this many minutes of attacking. Set to 0 to disable periodic balloon recovery.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stump_snail_convert",
+          title: "Convert When Backpack Is Full",
+          desc: "Walk back to the hive to convert whenever your backpack fills up while attacking, then return to the stump snail.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(bossMobsParent, "Coconut Crab", "", [
+        {
+          id: "coconut_crab",
+          title: "Enable Task",
+          desc: "Kill coconut crab. The macro's ability to kill it depends on your hive level, attack and lag",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "coconut_crab_max_kill_time",
+          title: "Coconut Crab Max Kill Time (Mins)",
+          desc: "Maximum minutes to attempt killing Coconut Crab before timing out.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(bossMobsParent, "King Beetle", "", [
+        {
+          id: "king_beetle",
+          title: "Enable Task",
+          desc: "Kill king beetle. The macro's ability to kill it depends on your hive level, attack and lag",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(bossMobsParent, "Tunnel Bear", "", [
+        {
+          id: "tunnel_bear",
+          title: "Enable Task",
+          desc: "Kill tunnel bear. The macro's ability to kill it depends on your hive level, attack and lag",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+
+      buildStandardContainer(bossMobsParent, "Mondo Buff 🐣", "", [
+        {
+          id: "mondo_buff",
+          title: "Enable Task",
+          desc: "Collect the Mondo Chick buff. The macro will only go to Mondo shortly before the hour and in the first 10 minutes of the hour.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_prep_time",
+          title: "Prep time (seconds)",
+          desc: "How many seconds before the hour to stop and walk to Mondo, so you're in place when it spawns. 0 waits until it has spawned.",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_buff_damage",
+          title: "Damage Mondo instead of waiting",
+          desc: "Attack Mondo Chick for the duration below, then leave without waiting for it to be defeated or collecting its loot.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_buff_wait",
+          title: "Damage / wait time (minutes)",
+          desc: "Duration for damage mode, or idle time when looting is disabled. Decimals are allowed, e.g. 1.5 minutes = 90 seconds.",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 5,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_buff_loot",
+          title: "Collect Loot From Mondo",
+          desc: "Collect loot when mondo chick is defeated.<br>Ignores the 'Damage Mondo for X mins' setting ",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_buff_hop",
+          title: "Hop Servers For More Mondos",
+          desc: "Requires 'Collect Loot From Mondo' active<br>After looting, join a new public server and do Mondo again until minute 14.75. Returns to your private server afterwards.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_loot_times",
+          title: "Loops",
+          desc: "Requires 'Collect Loot From Mondo' active <br>How many loops while collecting loot<br>One loop is going up then down once.<br>1-2 is recommended",
+          type: {
+            name: "dropdown",
+            data: [1, 2, 3, 4, 5],
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_collect_token",
+          title: "Collect Tokens From Bees",
+          desc: "Only used when 'Collect Loot From Mondo' and 'Damage Mondo' are off.<br>Collect tokens during from bees by moving every few seconds. <br> Recommend if you don't have a Cub Buddy.<br>Note: Your avatar may move slightly and drift away from the wall.<br> It is recommend to have a animation that minimizes slight movement.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mondo_buff_interrupt_gathering",
+          title: "Mondo Buff Interrupts gathering",
+          desc: "If mondo respawns while gathering, stop and collect its buff",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+    </script>
+  </div>
+
+</div>

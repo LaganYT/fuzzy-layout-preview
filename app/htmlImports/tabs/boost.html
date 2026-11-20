@@ -1,0 +1,551 @@
+<div class="page">
+  <div id="boost-nav" class="sub-nav-bar">
+    <div id="boost-hotbar" class="boost-tab-item">Hotbar</div>
+    <div id="boost-buffs" class="boost-tab-item">Buffs</div>
+    <div id="boost-tad-alt-sync" class="boost-tab-item">TAD Alt Sync</div>
+  </div>
+  <div id="boost-hotbar-tab" class="sub-tab-panel active">
+    <script>
+      const hotbarParent = document.getElementById("boost-hotbar-tab");
+      const boostHotbarSlots = [
+        { slot: 1 },
+        { slot: 2 },
+        { slot: 3 },
+        { slot: 4 },
+        { slot: 5 },
+        { slot: 6 },
+        { slot: 7 },
+      ];
+      const useWhenOptions = ["Never", "Always", "Gathering", "Converting", "Attacking", "Tap", { label: "Tap + Gather", value: "tap_gather" }];
+      const useEveryOptions = ["Secs", "Mins"];
+
+      hotbarParent.innerHTML = `
+        <div class="poppins-medium standard-container boost-hotbar-shell">
+          <h2 id="hotbar">Hotbar</h2>
+          <p style="font-weight:500; font-size:1rem;">Choose a slot from the bar and configure when it should activate.</p>
+          <div class="seperator"></div>
+          <div class="boost-hotbar-strip" id="boost-hotbar-strip"></div>
+          <div class="boost-hotbar-panels" id="boost-hotbar-panels"></div>
+        </div>
+      `;
+
+      const strip = document.getElementById("boost-hotbar-strip");
+      const panels = document.getElementById("boost-hotbar-panels");
+
+      boostHotbarSlots.forEach(({ slot }) => {
+        strip.innerHTML += `
+          <button type="button" id="boost-slot-${slot}" class="boost-hotbar-slot" onclick="switchBoostHotbarSlot(${slot})" title="Slot ${slot}">
+            <span class="boost-hotbar-slot-number">[${slot}]</span>
+            <span class="boost-hotbar-slot-frame">
+              <span class="boost-hotbar-slot-empty"></span>
+            </span>
+          </button>
+        `;
+
+        panels.innerHTML += `
+          <div id="boost-hotbar-slot-${slot}-panel" class="boost-hotbar-panel">
+            <div class="boost-hotbar-panel-header">
+              <div class="boost-hotbar-panel-icon boost-hotbar-panel-icon-empty">
+                <span class="boost-hotbar-slot-empty"></span>
+              </div>
+              <div>
+                <h3 class="poppins-semibold">Slot ${slot}</h3>
+                <p class="poppins-regular">Configure when this hotbar slot should be used.</p>
+              </div>
+            </div>
+            <form class="boost-hotbar-form-row">
+              <div class="boost-hotbar-form-copy">
+                <label>Item</label>
+                <p>Choose what is in this slot. Picking one sets Use Every to its usual interval.</p>
+              </div>
+              ${buildInput(`hotbar${slot}_item`, {
+                name: "dropdown",
+                data: boostHotbarItemOptions,
+                triggerFunction: "pickBoostHotbarItem(this)",
+                length: 12,
+              })}
+            </form>
+            <form class="boost-hotbar-form-row">
+              <div class="boost-hotbar-form-copy">
+                <label>Use When</label>
+                <p>Choose the condition that allows this slot to be used.</p>
+              </div>
+              ${buildInput(`hotbar${slot}_use_when`, {
+                name: "dropdown",
+                data: useWhenOptions,
+                triggerFunction: saveProfileTriggerFunction,
+              })}
+            </form>
+            <form class="boost-hotbar-form-row">
+              <div class="boost-hotbar-form-copy">
+                <label>Use Every</label>
+                <p>Set the cooldown for repeated use of this slot.</p>
+              </div>
+              <div class="boost-hotbar-frequency">
+                ${buildInput(`hotbar${slot}_use_every_value`, {
+                  name: "textbox",
+                  inputType: "float",
+                  triggerFunction: saveProfileTriggerFunction,
+                  length: 8,
+                })}
+                ${buildInput(`hotbar${slot}_use_every_format`, {
+                  name: "dropdown",
+                  data: useEveryOptions,
+                  triggerFunction: saveProfileTriggerFunction,
+                  length: 6,
+                }).replace("0.6rem", "0")}
+              </div>
+            </form>
+          </div>
+        `;
+      });
+
+      buildStandardContainer(hotbarParent, "Hotbar Item Slots", "", [
+        {
+          id: "sprinkler_type",
+          title: "Sprinkler Type",
+          desc: "The type of sprinkler that you use. Silver, Golden and Diamond sprinklers are spread out across the field when gathering",
+          type: {
+            name: "dropdown",
+            data: ["Basic", "Silver", "Golden", "Diamond", "Saturator"],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "sprinkler_slot",
+          title: "Sprinkler Slot",
+          desc: "The hotbar slot of the sprinkler",
+          type: {
+            name: "dropdown",
+            data: [1, 2, 3, 4, 5, 6],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "goo_slot",
+          title: "Gumdrop Slot",
+          desc: "The hotbar slot of your gumdrops, used for goo in fields, goo quests, and the glue dispenser",
+          type: {
+            name: "dropdown",
+            data: [1, 2, 3, 4, 5, 6, 7],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+        {
+          id: "glitter_slot",
+          title: "Glitter Slot",
+          desc: "The hotbar slot of your Glitter, used by field booster extending. Set to 0 to find Glitter in the inventory. Auto Field Boost and TAD alts have their own Glitter slots.",
+          type: {
+            name: "dropdown",
+            data: [0, 1, 2, 3, 4, 5, 6, 7],
+            triggerFunction: saveGeneralTriggerFunction,
+          },
+        },
+      ]);
+    </script>
+  </div>
+  <div id="boost-buffs-tab" class="sub-tab-panel">
+    <script>
+      const buffsParent = document.getElementById("boost-buffs-tab");
+      buildStandardContainer(buffsParent, "Field Boosters", "", [
+        {
+          id: "gather_boosted",
+          title: "Gather in boosted fields",
+          desc: "Gather in fields boosted by the field boosters",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "boost_seperate",
+          title: "Seperate boosts by X mins",
+          desc: "Seperate the collection of field boosters by X mins",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 4,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "field_booster_glitter_extend_enabled",
+          title: "Glitter Extending",
+          desc: "Use Glitter at 14:30 to extend each detected field booster. Uses the Glitter Slot under Hotbar Item Slots.",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "blue_booster",
+          title: "Blue Booster",
+          desc: "Collect the blue field booster in the blue HQ",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "red_booster",
+          title: "Red Booster",
+          desc: "Collect the red field booster in the red HQ",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "mountain_booster",
+          title: "Mountain Booster",
+          desc: "Collect the white field booster at mountain top field",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+      buildStandardContainer(buffsParent, "Guiding Star Tapping", "", [
+        {
+          id: "stump_tap",
+          title: "Stump Tap",
+          desc: "Visit the Stump Field when it has a Guiding Star",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "stump_tap_duration_mult",
+          title: "Stump Tap Gather Multiplier",
+          desc: "How much longer gathers run after a Stump tap. The extra fades out over the next 15 minutes. 1 keeps gathers the same",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 4,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "pine_tap",
+          title: "Pine Tap",
+          desc: "Visit the Pine Tree Forest after collecting a Blue Flower or Bamboo booster, at most every 15 minutes. Needs Gather in boosted fields and Glitter Extending",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "pine_tap_duration_mult",
+          title: "Pine Tap Gather Multiplier",
+          desc: "How much longer gathers run after a Pine tap. The extra fades out over the next 15 minutes. 1 keeps gathers the same",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 4,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+      const diceIconsArray = toImgArray(diceIcons);
+      buildStandardContainer(buffsParent, "Automatic Field Boost ⬆️ 🎲", "Automatically maintains glitter and dice boosts. Created by Sev", [
+        {
+          id: "AFB-reset",
+          title: "Reset Dice and Glitter timings",
+          desc: "Resets the macro's tracking data on AFB ",
+          type: {
+            name: "button",
+            text: "Reset",
+            triggerFunction: "clearAFBData(this)",
+          },
+        },
+        {
+          id: "Auto_Field_Boost",
+          title: "AFB",
+          desc: "Enable Auto Field Boost <br> Recommend that tasks other than gathering are disabled",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_wait",
+          title: "Wait",
+          desc: "How long the Macro waits to begin AFB after a gather interrupt",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_rebuff",
+          title: "Re-Buff",
+          desc: "Re-Buff every X mins <br> DO NOT set to 0",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 4,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_field",
+          title: "Field",
+          desc: "Activate AFB for the following field",
+          type: {
+            name: "dropdown",
+            data: fields,
+            length: 13,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_dice",
+          title: "Field Dice",
+          desc: "Type of Field Dice to use",
+          type: {
+            name: "dropdown",
+            data: diceIconsArray,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_slotD",
+          title: "Dice Slot",
+          desc: "Hotbar of dice <br> Set to 0 to find via inventory",
+          type: {
+            name: "dropdown",
+            data: [0, 1, 2, 3, 4, 5, 6, 7],
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_attempts",
+          title: "Dice Attempts",
+          desc: "Maximum number of times to roll the field dice",
+          type: {
+            name: "textbox",
+            inputType: "int",
+            inputLimit: 3,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_glitter",
+          title: "Glitter",
+          desc: "Allow Glitter to maintain buff",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_slotG",
+          title: "Glitter Slot",
+          desc: "Hotbar of Glitter <br> Set to 0 to find via inventory",
+          type: {
+            name: "dropdown",
+            data: [0, 1, 2, 3, 4, 5, 6, 7],
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_limit_on",
+          title: "Enable Time Limit",
+          desc: "Enable to stop using AFB after a set amount of hours",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "AFB_limit",
+          title: "Time Limit Length",
+          desc: "Deactivate AFB after X hours",
+          type: {
+            name: "textbox",
+            inputType: "float",
+            inputLimit: 4,
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+      buildStandardContainer(buffsParent, "Sticker Stack <img src='./assets/icons/sticker_stack.png' style='margin-left:0.4rem; height: 1.3rem;'>", "", [
+        {
+          id: "sticker_stack",
+          title: "Enable Task",
+          desc: "Activate the sticker stack",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "sticker_stack_item",
+          title: "Item",
+          desc: "Which item (sticker/ticket) the macro should use to activate the sticker stack.<br>Note: If sticker is selected, it is recommended to trade any valuable stickers to an alt account to prevent them from being used by the macro",
+          type: {
+            name: "dropdown",
+            data: ["Sticker", "Ticket", "Sticker/Ticket"],
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "hive_skin",
+          title: "Use Hive Skins",
+          desc: "Use Hive Skins in the sticker stack",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+        {
+          id: "sticker_stack_interrupt_gathering",
+          title: "Sticker Stack Interrupts gathering",
+          desc: "If sticker stack is ready while gathering, stop and activate it",
+          type: {
+            name: "checkbox",
+            triggerFunction: saveProfileTriggerFunction,
+          },
+        },
+      ]);
+    </script>
+  </div>
+  <div id="boost-tad-alt-sync-tab" class="sub-tab-panel">
+    <script>
+      const tadAltSyncParent = document.getElementById("boost-tad-alt-sync-tab");
+      buildStandardContainer(tadAltSyncParent, "TAD Alt Sync", "Start up to two Alt Mode accounts in the default field, then move them with detected field boosts.", [
+        {
+          id: "tad_alt_sync_enabled",
+          title: "Enable TAD Alt Sync",
+          desc: "Move enabled TAD alts to the field detected after collecting a booster.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_1_enabled",
+          title: "TAD Alt 1",
+          desc: "Enable the first alt.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_1_webhook",
+          title: "Alt 1 Remote-Control Webhook",
+          desc: "A webhook in a channel visible to the first alt's Fuzzy Discord bot.",
+          type: { name: "textbox", inputType: "string", length: 24, triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_2_enabled",
+          title: "TAD Alt 2",
+          desc: "Enable the second alt.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_2_webhook",
+          title: "Alt 2 Remote-Control Webhook",
+          desc: "A webhook in a channel visible to the second alt's Fuzzy Discord bot.",
+          type: { name: "textbox", inputType: "string", length: 24, triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_default_field",
+          title: "Default Alt Field",
+          desc: "Field restored after the boost expires.",
+          type: { name: "dropdown", data: fields, length: 13, triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_copy_field_settings",
+          title: "Use My Field Settings For This Field",
+          desc: "Copy the host's current settings for the selected Default Alt Field into the Alt Gather preset.",
+          type: { name: "button", text: "Copy Settings", triggerFunction: "copyHostFieldSettingsToTadAlt(this)" },
+        },
+      ]);
+      buildStandardContainer(tadAltSyncParent, "Default Alt Gather Pattern", "Settings used while the alt gathers indefinitely in the Default Alt Field.", [
+        {
+          id: "tad_alt_gather_shape", title: "Default Field Pattern", desc: "Pattern used by alts in the Default Alt Field. Custom patterns must also exist on each alt.",
+          type: { name: "dropdown", data: [], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_size", title: "Pattern Size", desc: "Area covered by the alt pattern.",
+          type: { name: "dropdown", data: ["XS", "S", "M", "L", "XL"], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_width", title: "Pattern Width", desc: "Number of pattern repetitions.",
+          type: { name: "dropdown", data: [1, 2, 3, 4, 5, 6, 7, 8], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_shift_lock", title: "Use Shift Lock", desc: "Enable shift lock while the alt gathers.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_drift_compensation", title: "Drift Compensation", desc: "Re-align the alt between pattern cycles.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_invert_lr", title: "Invert Left/Right", desc: "Invert horizontal pattern movement.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_invert_fb", title: "Invert Forward/Back", desc: "Invert vertical pattern movement.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_turn", title: "Camera Turn", desc: "Turn the camera before gathering.",
+          type: { name: "dropdown", data: ["None", "Left", "Right"], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_turn_times", title: "Camera Turn Count", desc: "Number of camera turns.",
+          type: { name: "dropdown", data: [1, 2, 3, 4], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_start_location", title: "Start Location", desc: "Part of the default field where the alt starts gathering.",
+          type: { name: "dropdown", data: ["Center", "Upper Right", "Right", "Lower Right", "Bottom", "Lower Left", "Left", "Upper Left", "Top"], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_distance", title: "Start Distance", desc: "Distance travelled toward the selected start location.",
+          type: { name: "dropdown", data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_goo", title: "Use Goo", desc: "Use goo while the alt gathers.",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_gather_goo_interval", title: "Goo Interval", desc: "Seconds between goo uses.",
+          type: { name: "textbox", inputType: "int", inputLimit: 3, triggerFunction: saveProfileTriggerFunction },
+        },
+      ]);
+      buildStandardContainer(tadAltSyncParent, "Timing & Glitter Extending", "Control alt restarts, boost duration, and optional host-side Glitter use.", [
+        {
+          id: "tad_alt_buff_bar_boost",
+          title: "Follow Buff Bar Boosts",
+          desc: "Move the alts to a field boost shown on the host's buff bar, including boosts the macro did not use itself. Pick the boost colour to follow. Alts return after the Boost Duration, counted from when the boost is first seen. Spider and Pineapple boosts are not detected.",
+          type: { name: "dropdown", data: ["Off", "Blue", "White", "Red"], triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_restart_delay",
+          title: "Restart Delay",
+          desc: "Seconds to wait after stopping the alt macro before changing its field.",
+          type: { name: "textbox", inputType: "float", inputLimit: 4, triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_boost_duration",
+          title: "Boost Duration",
+          desc: "Seconds before returning the alts to their default field (900 = 15 minutes).",
+          type: { name: "textbox", inputType: "float", inputLimit: 5, triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_glitter_extend_enabled",
+          title: "Glitter Extending",
+          desc: "Have the host use Glitter five seconds before the TAD alt boost expires, then return alts after a second boost duration (30 minutes total when Boost Duration is 900).",
+          type: { name: "checkbox", triggerFunction: saveProfileTriggerFunction },
+        },
+        {
+          id: "tad_alt_glitter_slot",
+          title: "Glitter Hotbar Slot",
+          desc: "The hotbar slot of the Glitter used for TAD alt extending. Set to 0 to find Glitter in the inventory.",
+          type: { name: "dropdown", data: [0, 1, 2, 3, 4, 5, 6, 7], triggerFunction: saveProfileTriggerFunction },
+        },
+      ]);
+    </script>
+  </div>
+</div>

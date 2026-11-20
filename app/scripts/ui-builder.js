@@ -1,0 +1,344 @@
+//use javascript to add html elements
+//avoids repetition of building the same elements
+
+//commonly used
+const slotArray = [1, 2, 3, 4, 5, 6, 7];
+
+function toTitleCase(str) {
+  return str.replace(
+    /\w\S*/g,
+    text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
+  );
+}
+
+const stripHTMLTags = str => str.replace(/<[^>]*(?:>|$)/g, '');
+const saveGeneralTriggerFunction = "saveSetting(this, 'general')";
+const saveProfileTriggerFunction = "saveSetting(this, 'profile')";
+
+//id: id of input element
+/*
+    type property: the type of input element
+    checkbox:
+    type: {
+        name: "checkbox",
+        triggerFunction: "saveData()"
+    }
+    dropdown:
+    type: {
+        name: "dropdown",
+        data: ["a","b","c"],
+        triggerFunction: "saveData()",
+        length: 13, //in rem units, defaults to 10 if not included
+        multiple: true, // optional multi-select behavior
+        maxSelections: 5 // optional max selected items for multi-select dropdowns
+    }
+    textbox:
+    type: {
+        name: "textbox",
+        length: 13, //in rem units, defaults to 10 if not included
+        triggerFunction: "saveData()",
+        inputType: "float", //restrict the input values to only certain characters. Options are: string, float, int
+        inputLimit: 5 //restrict the maximum number of characters allowed. If set to 0 or not included, no limit 
+    }
+    button:
+    type: {
+        name: "button",
+        triggerFunction: "func()",
+        text: "reset" //button text
+        length: 10, //in rem units, defaults to 5 if not included
+    }
+    color: (#RRGGBB hex textbox plus a picker, for the Custom theme)
+    type: {
+        name: "color",
+        label: "Background" //names the inputs for screen readers
+    }
+    multicheck:
+    type: {
+        name: "multicheck",
+        data: ["a", "b"],
+        triggerFunction: "saveData()"
+    }
+*/
+
+//create option elements in a already existing dropdown
+//id: id of dropdown element
+//data: array of values to set
+function setDropdownData(id, data) {
+  //create the html (normalize data-value to match buildInput processing)
+  let html = "";
+  data.forEach((x) => {
+    let value = x;
+    let display = x;
+    // support objects of the form { label: "Visible", value: "internal" }
+    if (x && typeof x === "object") {
+      if (x.hasOwnProperty("value")) value = x.value;
+      if (x.hasOwnProperty("label")) display = x.label;
+    }
+    if (typeof value === "string") {
+      value = stripHTMLTags(value);
+      try {
+        value = value.replace(/[^\p{L}\p{N}\p{P}\p{Z}^$\n]/gu, "");
+      } catch (e) {
+        // If the unicode regex isn't supported, fall back to a simpler remove-emojis step
+        value = value.replace(/[^\w\s\-\.,]/g, "");
+      }
+      value = value.trim().toLowerCase();
+    }
+    html += `<div class = "option" data-value = "${value}">${display}</div>`;
+  });
+  //add it to the element
+  const container = document.getElementById(id);
+  if (container && container.children[1] && container.children[1].children[0]) {
+    container.children[1].children[0].innerHTML = html;
+  }
+}
+
+function toggleMultiCheckOption(option, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const input = option.querySelector("input[type='checkbox']");
+  if (!input) return;
+  const list = option.closest(".multi-checklist");
+  const maxSelections = Number(list?.dataset?.maxSelections || 0);
+  const willCheck = !input.checked;
+  if (willCheck && maxSelections > 0) {
+    const selected = Array.from(list.querySelectorAll("input[type='checkbox']:checked"));
+    if (selected.length >= maxSelections) return;
+  }
+  input.checked = willCheck;
+  input.dispatchEvent(new Event("change"));
+}
+
+function buildInput(id, type) {
+  if (type.name == "checkbox") {
+    return `<label class="checkbox-container" style="margin-top: 0.6rem;">
+                    <input type="checkbox" id = ${id} onchange="${type.triggerFunction}">
+                    <span class="checkmark"></span>
+                </label>`;
+  } else if (type.name == "dropdown") {
+    const defaultValue = type.multiple ? "None" : "None";
+    const defaultDataValue = type.multiple ? "[]" : "none";
+    let html = `
+        <div data-onchange="${type.triggerFunction
+      }" id = ${id} class="custom-select poppins-regular" data-default="${type.default ?? ""}" data-multiple="${type.multiple ? "true" : "false"}" data-max-selections="${type.maxSelections ? type.maxSelections : 0}" style="width: ${type.length ? type.length : 10
+      }rem; margin-top: 0.6rem;">
+            <div class="select-area">
+                <div class = "value" data-value='${defaultDataValue}'>${defaultValue}</div>
+                <div class = "chevron">></div>
+            </div>
+            <div class="select-menu-relative">
+                <div class="select-menu" style="display: none;">
+        `;
+    for (let i = 0; i < type.data.length; i++) {
+      const x = type.data[i];
+      let value = x;
+      let display = x;
+      // allow {label, value} objects for visual-only label changes
+      if (x && typeof x === "object") {
+        if (x.hasOwnProperty("value")) value = x.value;
+        if (x.hasOwnProperty("label")) display = x.label;
+      }
+      if ($.type(value) === "string") {
+        value = stripHTMLTags(value);
+        value = value.replace(/[^\p{L}\p{N}\p{P}\p{Z}^$\n]/gu, ""); //remove emojis
+        value = value.trim().toLowerCase(); //remove leading/trailing white space, also set to lowercase
+      }
+      html += `<div class = "option" data-value = "${value}">${display}</div>`;
+    }
+    html += `</div>
+            </div>
+        </div>`;
+    return html;
+  } else if (type.name == "textbox") {
+    let html = `<input type="text" id="${id}" style="width: ${type.length ? type.length : 10
+      }rem; margin-top: 0.6rem;" class="poppins-regular textbox" data-input-type="${type.inputType
+      }" data-input-limit="${type.inputLimit ? type.inputLimit : 0
+      }"${type.allowNegative ? ' data-allow-negative="1"' : ""} onkeypress="return textboxRestriction(this, event)" onchange="${type.triggerFunction
+      }">`;
+    return html;
+  } else if (type.name == "color") {
+    // a #RRGGBB textbox (the saved value) with a colour picker beside it
+    return `<div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.6rem;">
+            <input type="color" class="color-swatch" data-color-for="${id}" value="#000000" aria-label="${type.label} color picker" onchange="pickCustomColor(this)">
+            <input type="text" id="${id}" name="${id}" class="poppins-regular textbox" style="width:7rem; margin:0;" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB…" aria-label="${type.label} hex color" onchange="saveCustomColor(this)">
+          </div>`;
+  } else if (type.name == "textbox_with_button") {
+    // composite control: an input plus a button on the same line
+    const inputId = type.inputId ? type.inputId : `${id}_input`;
+    const inputWidth = type.inputWidth ? type.inputWidth : (type.length ? type.length : 12);
+    const btnId = type.buttonId ? type.buttonId : `${id}_btn`;
+    const btnText = type.buttonText ? type.buttonText : "Action";
+    const btnFunc = type.buttonFunction ? type.buttonFunction : "";
+    const inputOnchange = type.inputOnchange ? type.inputOnchange : (type.triggerFunction ? type.triggerFunction : "");
+
+    // ensure button text doesn't wrap and has sensible padding
+    const btnWidthStyle = type.buttonWidth ? `${type.buttonWidth}rem` : "auto";
+    // set a consistent height for input and button so they align
+    const controlHeight = type.controlHeight ? type.controlHeight : '2.2rem';
+    const inputPadding = type.inputPadding ? type.inputPadding : '0.35rem 0.5rem';
+    const buttonPadding = type.buttonPadding ? type.buttonPadding : '0.35rem 0.6rem';
+    // remove extra top margin so the control lines up with the label text
+    let html = `<div style="display:flex; align-items:center; gap:0.5rem; margin:0;">
+            <input type="text" id="${inputId}" style="width: ${inputWidth}rem; height: ${controlHeight}; padding: ${inputPadding}; box-sizing: border-box; margin:0;" class="poppins-regular textbox" data-input-type="${type.inputType || 'string'}" data-input-limit="${type.inputLimit ? type.inputLimit : 0}" onkeypress="return textboxRestriction(this, event)" onchange="${inputOnchange}">
+            <div id="${btnId}" class="purple-button" onclick="${btnFunc}" style="width: ${btnWidthStyle}; height: ${controlHeight}; display: inline-flex; white-space: nowrap; align-items: center; justify-content: center; padding: ${buttonPadding}; box-sizing: border-box; margin:0; cursor: pointer;">${btnText}</div>
+          </div>`;
+    return html;
+  } else if (type.name == "button") {
+    // fixed control height for buttons to align with inputs
+    const singleBtnHeight = type.buttonHeight ? type.buttonHeight : '2.2rem';
+    const singleBtnPadding = type.buttonPadding ? type.buttonPadding : '0 0.6rem';
+    let html = `<div id = "${id}" class="purple-button" onclick="${type.triggerFunction
+      }" style="width: ${type.length ? type.length : 'auto'}rem; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; height: ${singleBtnHeight}; padding: ${singleBtnPadding}; box-sizing: border-box; cursor: pointer;">${type.text
+      }</div>`;
+    return html;
+  } else if (type.name == "keybind") {
+    const keybindWidth = type.length ? type.length : 10;
+    let html = `<div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.6rem;">
+        <div id="${id}" class="keybind-input poppins-regular" style="width: ${keybindWidth}rem; padding: 0.5rem; border: 2px solid var(--primary); border-radius: 4px; background: var(--textbox-bg); color: var(--text-main); cursor: pointer; text-align: center; user-select: none; font-size: 1rem; transition: all 0.2s ease;" onclick="startKeybindRecording('${id}')" data-recording="false" data-trigger-function="${type.triggerFunction}">
+            <span class="keybind-display">Click to record</span>
+        </div>
+        <button type="button" class="purple-button keybind-clear-button" onclick="clearKeybind('${id}', event)" title="Clear this keybind">Clear</button>
+      </div>`;
+    return html;
+  } else if (type.name == "draglist") {
+    let html = `<div id="${id}" class="drag-list" data-onchange="${type.triggerFunction}" style="margin-top: 0.6rem;">
+            <div class="drag-list-container" id="${id}-container">`;
+    for (let i = 0; i < type.data.length; i++) {
+      const item = type.data[i];
+      html += `<div class="drag-item" data-id="${item.id}" draggable="true">
+                <span class="drag-handle">⋮⋮</span>
+                <span class="drag-text">${item.name}</span>
+            </div>`;
+    }
+    html += `</div></div>`;
+    return html;
+  } else if (type.name == "multicheck") {
+    const triggerFunction = type.triggerFunction
+      ? type.triggerFunction.replaceAll("this", `document.getElementById('${id}')`)
+      : "";
+    const variantClass = type.variant
+      ? ` ${String(type.variant).split(/\s+/).filter(Boolean).map((x) => `multi-checklist-${x}`).join(" ")}`
+      : "";
+    const showTileLabel = String(type.variant || "").split(/\s+/).includes("report-buffs");
+    const maxSelectionsAttr = type.maxSelections ? ` data-max-selections="${type.maxSelections}"` : "";
+    let html = `<div id="${id}" class="multi-checklist${variantClass}"${maxSelectionsAttr} style="margin-top: 0.6rem;">`;
+    for (let i = 0; i < type.data.length; i++) {
+      const item = type.data[i];
+      let value = item;
+      let display = item;
+      let image = "";
+      let firstType = "";
+      let types = [];
+      if (item && typeof item === "object") {
+        if (item.hasOwnProperty("value")) value = item.value;
+        if (item.hasOwnProperty("label")) display = item.label;
+        if (item.hasOwnProperty("image")) image = item.image;
+        if (item.hasOwnProperty("first_type")) firstType = item.first_type;
+        if (Array.isArray(item.types)) types = item.types;
+      }
+      if ($.type(value) === "string") {
+        value = stripHTMLTags(value);
+        value = value.replace(/[^\p{L}\p{N}\p{P}\p{Z}^$\n]/gu, "");
+        value = value.trim().toLowerCase();
+      }
+      const labelHtml = showTileLabel ? `<span class="multi-check-label">${display}</span>` : "";
+      const imageHtml = image ? `<img src="${image}" alt="${display}" draggable="false">${labelHtml}` : `<span>${display}</span>`;
+      const typeLabels = {
+        normal: "Memory Match",
+        mega: "Mega Memory Match",
+        extreme: "Extreme Memory Match",
+        winter: "Winter Memory Match",
+      };
+      const typeBadges = {
+        normal: "N",
+        mega: "M",
+        extreme: "E",
+        winter: "W",
+      };
+      const badgeText = types.length
+        ? types.map((type) => typeBadges[type] || type).join("/")
+        : (firstType ? String(firstType).replace(" Memory Match", "").trim() : "");
+      const title = types.length
+        ? `${display} - found in ${types.map((type) => typeLabels[type] || type).join(", ")}`
+        : (firstType ? `${display} - first found in ${firstType}` : display);
+      const badgeHtml = badgeText ? `<span class="multi-check-badge">${badgeText}</span>` : "";
+      html += `<div class="multi-check-option" onclick="toggleMultiCheckOption(this, event)" onmousedown="event.stopPropagation()">
+        <input type="checkbox" value="${value}" onchange="${triggerFunction}" tabindex="-1">
+        <span class="multi-check-tile" title="${title}">${imageHtml}${badgeHtml}</span>
+      </div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+}
+
+//parentElement: the parentElement to add the container to
+//build a standard container for settings
+//title: title of container
+//settings: an array of objects
+/*
+[
+    {
+        id: "field-enable",
+        title: "enable task",
+        desc: "Enable gathering in field",
+        type: input-type-object-here
+    }
+]
+*/
+function buildStandardContainer(parentElement, title, desc, settings) {
+  let out = `
+        <div class = "poppins-medium standard-container" style="display: block; justify-items: unset; padding-top: 1rem;">
+            <h2 id="${title.toLowerCase().replaceAll(" ", "-")}">${title}</h2>
+            <p style = "font-weight:500; font-size:1rem;">${desc}</p>
+            <div class="seperator"></div>
+    `;
+  //adjust padding right on the form based on the input type
+  const inputPadding = {
+    checkbox: "10%",
+    dropdown: "5%",
+    textbox: "5%",
+    color: "5%",
+    button: "5%",
+    keybind: "5%",
+    multicheck: "5%",
+  };
+
+  //add each setting
+  settings.forEach((e, i) => {
+    if (e.type && e.type.name === "separator") {
+      out += `
+        <div class="seperator" style="margin-top: 1.5rem;"></div>
+        <p style="font-weight:600; font-size:1rem; margin: 1rem 0 0.5rem;">${e.title}</p>
+        ${e.desc ? `<p style="font-size:0.9rem; opacity:0.8; margin:0;">${e.desc}</p>` : ""}
+      `;
+      return;
+    }
+
+    //note: if i > 0, set a margin-top
+    //if the control is a standalone button, vertically center the left text block
+    const isSingleButton = e.type && e.type.name === 'button';
+    const isMultiCheck = e.type && e.type.name === 'multicheck';
+    const alignItems = isSingleButton ? 'center' : 'flex-start';
+    const leftDivStyle = isSingleButton ? 'display:flex; flex-direction:column; justify-content:center;' : '';
+    const formDirection = isMultiCheck ? 'column' : 'row';
+    const formPaddingRight = isMultiCheck ? '0' : inputPadding[e.type.name];
+    const leftWidth = isMultiCheck ? '100%' : '70%';
+    const elementTag = isMultiCheck ? "div" : "form";
+    out += `
+      <${elementTag} style="display: flex; flex-direction:${formDirection}; align-items:${alignItems}; justify-content: space-between; padding-right: ${formPaddingRight
+      }; ${i ? "margin-top:1rem" : ""};" ${elementTag === "form" ? 'onsubmit="return false"' : ""}>
+        <div style="width: ${leftWidth}; ${leftDivStyle}">
+          <label>${e.title}</label>
+          <p>${e.desc}</p>
+        </div>
+        ${buildInput(e.id, e.type)}
+      </${elementTag}>
+      `;
+  });
+
+  out += "</div>";
+  parentElement.innerHTML += out;
+}
