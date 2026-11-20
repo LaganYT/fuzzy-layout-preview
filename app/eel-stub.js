@@ -17,6 +17,7 @@ window.__DATA = {"loadAllSettings": {"fields_enabled": [true, false, false, fals
     stop: () => { runState = 3; },
     pause: () => { runState = 6; },
     resume: () => { runState = 2; },
+    applyMacroProfileChange: (scope, k, v) => { persist(k, v); return { ok: true }; },
     saveGeneralSetting: (k, v) => persist(k, v),
     saveProfileSetting: (k, v) => persist(k, v),
     saveDictProfileSettings: (obj) => { if (obj && typeof obj === "object") Object.entries(obj).forEach(([k, v]) => persist(k, v)); },

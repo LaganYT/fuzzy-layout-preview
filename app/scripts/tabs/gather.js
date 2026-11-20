@@ -564,7 +564,36 @@ async function loadAndSaveField(ele) {
   await saveSettingValue("profile", "fields", fields);
 }
 
+const DEFAULT_GATHER_FIELD_COUNT = 5;
+
+//one tab per configured field, kept in front of the + button
+function renderGatherTabs(count) {
+  const tabs = document.getElementsByClassName("gather-tab-item");
+  while (tabs.length > count) tabs[tabs.length - 1].remove();
+  const addButton = document.getElementById("add-field-button");
+  for (let i = tabs.length + 1; i <= count; i++) {
+    const tab = document.createElement("div");
+    tab.id = `field-${i}`;
+    tab.className = "gather-tab-item";
+    tab.textContent = `Field ${i}`;
+    addButton.before(tab);
+  }
+}
+
+async function addGatherField() {
+  const settings = await loadSettings();
+  const fields = [...settings.fields, "pine tree"];
+  const fields_enabled = [...settings.fields_enabled, false];
+  if (!(await saveSettingValue("profile", "fields", fields))) return;
+  if (!(await saveSettingValue("profile", "fields_enabled", fields_enabled))) return;
+  renderGatherTabs(fields.length);
+  await switchGatherTab(document.getElementById(`field-${fields.length}`));
+}
+
 async function switchGatherTab(target) {
+  const settings = await loadSettings();
+  renderGatherTabs(Math.max(settings.fields.length, DEFAULT_GATHER_FIELD_COUNT));
+  if (!target.isConnected) target = document.getElementById("field-1");
   setActiveSubtab("activeGatherSubtab", target.id);
   fieldNo = target.id.split("-")[1];
   Array.from(document.getElementsByClassName("gather-tab-item")).forEach((x) =>
@@ -575,7 +604,6 @@ async function switchGatherTab(target) {
   //scroll back to top
   document.getElementById("gather").scrollTo(0, 0);
   //load the fields
-  const settings = await loadSettings();
   const fieldDropdown = document.getElementById("field");
   setDropdownValue(fieldDropdown, settings.fields[fieldNo - 1]);
   document.getElementById("field_enable").checked =
@@ -586,11 +614,13 @@ async function switchGatherTab(target) {
 }
 
 $("#gather-placeholder")
-  .load("../htmlImports/tabs/gather.html", () =>
-    switchGatherTab(
+  .load("../htmlImports/tabs/gather.html", async () => {
+    renderGatherTabs(Math.max((await loadSettings()).fields.length, DEFAULT_GATHER_FIELD_COUNT));
+    await switchGatherTab(
       document.getElementById(getActiveSubtab("activeGatherSubtab", "field-1"))
-    )
-  ) //load home tab, restore active field once its done loading
+    );
+  }) //load gather tab, restore active field once its done loading
+  .on("click", "#add-field-button", addGatherField)
   .on("click", ".gather-tab-item", (event) =>
     switchGatherTab(event.currentTarget)
   ) //navigate between fields

@@ -408,6 +408,23 @@ select:focus {
   font-weight: 600;
 }
 
+.sub-nav-bar > .gather-add-field {
+  padding: 0.35rem 0.8rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.sub-nav-bar > .gather-add-field:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-main);
+}
+
 .sub-nav-label {
   color: var(--text-dim);
   font-size: 0.8rem;
