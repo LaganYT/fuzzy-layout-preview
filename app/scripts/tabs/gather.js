@@ -564,9 +564,9 @@ async function loadAndSaveField(ele) {
   await saveSettingValue("profile", "fields", fields);
 }
 
-const DEFAULT_GATHER_FIELD_COUNT = 5;
+const MIN_GATHER_FIELD_COUNT = 3;
 
-//one tab per configured field, kept in front of the + button; the x shows once there are more than the default
+//one tab per configured field, kept in front of the + button; the x shows once there are more than the minimum
 function renderGatherTabs(count) {
   const tabs = document.getElementsByClassName("gather-tab-item");
   while (tabs.length > count) tabs[tabs.length - 1].remove();
@@ -578,14 +578,14 @@ function renderGatherTabs(count) {
     tab.innerHTML = `Field ${i}<span class="gather-remove-field" title="Remove this field" aria-label="Remove field ${i}">&times;</span>`;
     addButton.before(tab);
   }
-  addButton.parentElement.classList.toggle("can-remove-field", count > DEFAULT_GATHER_FIELD_COUNT);
+  addButton.parentElement.classList.toggle("can-remove-field", count > MIN_GATHER_FIELD_COUNT);
 }
 
 async function removeGatherField(number) {
   const settings = await loadSettings();
   const fields = settings.fields.filter((_, i) => i !== number - 1);
   const fields_enabled = settings.fields_enabled.filter((_, i) => i !== number - 1);
-  if (fields.length < DEFAULT_GATHER_FIELD_COUNT) return;
+  if (fields.length < MIN_GATHER_FIELD_COUNT) return;
   if (!(await saveSettingValue("profile", "fields", fields))) return;
   if (!(await saveSettingValue("profile", "fields_enabled", fields_enabled))) return;
   const current = Number(fieldNo);
@@ -605,7 +605,7 @@ async function addGatherField() {
 
 async function switchGatherTab(target) {
   const settings = await loadSettings();
-  renderGatherTabs(Math.max(settings.fields.length, DEFAULT_GATHER_FIELD_COUNT));
+  renderGatherTabs(Math.max(settings.fields.length, MIN_GATHER_FIELD_COUNT));
   if (!target.isConnected) target = document.getElementById("field-1");
   setActiveSubtab("activeGatherSubtab", target.id);
   fieldNo = target.id.split("-")[1];
@@ -628,7 +628,7 @@ async function switchGatherTab(target) {
 
 $("#gather-placeholder")
   .load("../htmlImports/tabs/gather.html", async () => {
-    renderGatherTabs(Math.max((await loadSettings()).fields.length, DEFAULT_GATHER_FIELD_COUNT));
+    renderGatherTabs(Math.max((await loadSettings()).fields.length, MIN_GATHER_FIELD_COUNT));
     await switchGatherTab(
       document.getElementById(getActiveSubtab("activeGatherSubtab", "field-1"))
     );
