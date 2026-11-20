@@ -415,9 +415,10 @@ select:focus {
   background: none;
   color: var(--text-dim);
   cursor: pointer;
+  display: flex;
+  gap: 0.9rem;
   font: inherit;
   font-weight: 500;
-  text-align: left;
   transition: background-color 0.15s, color 0.15s;
 }
 
