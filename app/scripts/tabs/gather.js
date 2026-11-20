@@ -566,7 +566,7 @@ async function loadAndSaveField(ele) {
 
 const DEFAULT_GATHER_FIELD_COUNT = 5;
 
-//one tab per configured field, kept in front of the + button
+//one tab per configured field, kept in front of the + button; the x shows once there are more than the default
 function renderGatherTabs(count) {
   const tabs = document.getElementsByClassName("gather-tab-item");
   while (tabs.length > count) tabs[tabs.length - 1].remove();
@@ -575,9 +575,22 @@ function renderGatherTabs(count) {
     const tab = document.createElement("div");
     tab.id = `field-${i}`;
     tab.className = "gather-tab-item";
-    tab.textContent = `Field ${i}`;
+    tab.innerHTML = `Field ${i}<span class="gather-remove-field" title="Remove this field" aria-label="Remove field ${i}">&times;</span>`;
     addButton.before(tab);
   }
+  addButton.parentElement.classList.toggle("can-remove-field", count > DEFAULT_GATHER_FIELD_COUNT);
+}
+
+async function removeGatherField(number) {
+  const settings = await loadSettings();
+  const fields = settings.fields.filter((_, i) => i !== number - 1);
+  const fields_enabled = settings.fields_enabled.filter((_, i) => i !== number - 1);
+  if (fields.length < DEFAULT_GATHER_FIELD_COUNT) return;
+  if (!(await saveSettingValue("profile", "fields", fields))) return;
+  if (!(await saveSettingValue("profile", "fields_enabled", fields_enabled))) return;
+  const current = Number(fieldNo);
+  const next = number < current ? current - 1 : Math.min(current, fields.length);
+  await switchGatherTab(document.getElementById(`field-${next}`));
 }
 
 async function addGatherField() {
@@ -621,6 +634,10 @@ $("#gather-placeholder")
     );
   }) //load gather tab, restore active field once its done loading
   .on("click", "#add-field-button", addGatherField)
+  .on("click", ".gather-remove-field", (event) => {
+    event.stopPropagation();
+    removeGatherField(Number(event.currentTarget.parentElement.id.split("-")[1]));
+  })
   .on("click", ".gather-tab-item", (event) =>
     switchGatherTab(event.currentTarget)
   ) //navigate between fields

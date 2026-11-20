@@ -425,6 +425,32 @@ select:focus {
   color: var(--text-main);
 }
 
+.gather-tab-item {
+  position: relative;
+}
+
+.gather-remove-field {
+  display: none;
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  line-height: 1.2;
+  opacity: 0.6;
+}
+
+.gather-remove-field:hover {
+  opacity: 1;
+  background-color: var(--surface-hover);
+}
+
+.can-remove-field .gather-tab-item:hover .gather-remove-field {
+  display: block;
+}
+
 .sub-nav-label {
   color: var(--text-dim);
   font-size: 0.8rem;
